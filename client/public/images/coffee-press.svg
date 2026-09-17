@@ -1,0 +1,10 @@
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="800" fill="#E7E2D7"/>
+  <rect x="180" y="160" width="440" height="430" rx="52" fill="#F8F5F0"/>
+  <path d="M260 260H540V420C540 452 514 478 482 478H318C286 478 260 452 260 420V260Z" fill="#7A9475"/>
+  <path d="M240 300H560" stroke="#587059" stroke-width="16" stroke-linecap="round"/>
+  <path d="M280 295V210C280 180 304 156 334 156H466C496 156 520 180 520 210V295" stroke="#89A08D" stroke-width="16" stroke-linecap="round"/>
+  <path d="M310 478H490" stroke="#BBCDBE" stroke-width="10" stroke-linecap="round"/>
+  <path d="M340 580C360 560 380 550 400 550C420 550 440 560 460 580" stroke="#7E9E7D" stroke-width="16" stroke-linecap="round"/>
+  <text x="400" y="700" text-anchor="middle" font-size="38" font-family="Arial, sans-serif" fill="#214C3E" font-weight="700">French Press</text>
+</svg>
