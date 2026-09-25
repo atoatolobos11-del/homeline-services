@@ -117,3 +117,24 @@ on conflict (id) do update set
   slug        = excluded.slug,
   image       = excluded.image,
   sort_order  = excluded.sort_order;
+
+-- ---------- Row Level Security ----------
+-- The catalog is public: anyone may read products/categories.
+-- The forms are public: anyone may insert into newsletter/contact tables.
+
+alter table public.products enable row level security;
+alter table public.categories enable row level security;
+alter table public.newsletter_subscribers enable row level security;
+alter table public.contact_messages enable row level security;
+
+drop policy if exists "anon can view products" on public.products;
+create policy "anon can view products" on public.products for select using (true);
+
+drop policy if exists "anon can view categories" on public.categories;
+create policy "anon can view categories" on public.categories for select using (true);
+
+drop policy if exists "anon can subscribe" on public.newsletter_subscribers;
+create policy "anon can subscribe" on public.newsletter_subscribers for insert with check (true);
+
+drop policy if exists "anon can send messages" on public.contact_messages;
+create policy "anon can send messages" on public.contact_messages for insert with check (true);
