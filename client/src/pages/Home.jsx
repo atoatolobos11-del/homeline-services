@@ -8,9 +8,11 @@ import SustainabilitySection from '../components/home/SustainabilitySection';
 import Testimonials from '../components/home/Testimonials';
 import EditorialSection from '../components/home/EditorialSection';
 import SustainabilityCTA from '../components/home/SustainabilityCTA';
-import { products } from '../data/products';
+import { useShopData } from '../context/DataContext';
 
 const Home = () => {
+  const { products } = useShopData();
+
   return (
     <div className="overflow-hidden">
       <Hero />

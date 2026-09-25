@@ -1,19 +1,21 @@
 import { images } from '../data/products'
-import { products } from '../data/products'
-
-const gallery = [
-  images.hero,
-  images.lifestyle,
-  images.editorialMain,
-  images.editorial2,
-  images.editorial3,
-  images.bestSellers,
-  images.newArrival,
-  images.about,
-  ...products.slice(0, 4).map((product) => product.image),
-]
+import { useShopData } from '../context/DataContext'
 
 export default function Gallery() {
+  const { products } = useShopData()
+
+  const gallery = [
+    images.hero,
+    images.lifestyle,
+    images.editorialMain,
+    images.editorial2,
+    images.editorial3,
+    images.bestSellers,
+    images.newArrival,
+    images.about,
+    ...products.slice(0, 4).map((product) => product.image),
+  ]
+
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 pt-28 sm:px-6 lg:px-8">
       <p className="text-xs uppercase tracking-[0.22em] text-muted">Gallery</p>

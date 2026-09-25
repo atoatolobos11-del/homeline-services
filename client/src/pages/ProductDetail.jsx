@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Toast from '../components/ui/Toast';
 import { useCart } from '../hooks/useCart';
-import { products } from '../data/products';
+import { useShopData } from '../context/DataContext';
 
 const sizeOptions = ['Small', 'Medium', 'Large'];
 
@@ -12,6 +12,7 @@ const ProductDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { products } = useShopData();
   const product = products.find((item) => item.slug === slug);
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Natural');
   const [selectedSize, setSelectedSize] = useState('Medium');

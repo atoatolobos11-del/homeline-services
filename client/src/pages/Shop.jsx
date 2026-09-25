@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ProductGrid from '../components/product/ProductGrid'
-import { products } from '../data/products'
-
-const categoryOptions = ['All', ...new Set(products.map((item) => item.category))]
+import { useShopData } from '../context/DataContext'
 
 export default function Shop() {
+  const { products } = useShopData()
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState(params.get('q') || '')
   const selectedCategory = params.get('category') || 'All'
   const filter = params.get('filter') || 'all'
+
+  const categoryOptions = useMemo(
+    () => ['All', ...new Set(products.map((item) => item.category))],
+    [products],
+  )
 
   const filtered = useMemo(() => {
     return products.filter((product) => {
@@ -26,7 +30,7 @@ export default function Shop() {
         (filter === 'new' && product.newArrival)
       return matchesQuery && matchesCategory && matchesFilter
     })
-  }, [query, selectedCategory, filter])
+  }, [products, query, selectedCategory, filter])
 
   function setCategory(category) {
     const next = new URLSearchParams(params)

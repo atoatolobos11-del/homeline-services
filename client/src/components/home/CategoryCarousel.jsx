@@ -1,7 +1,9 @@
-import { categories } from '../../data/products';
+import { useShopData } from '../../context/DataContext';
 import { ArrowRight } from 'lucide-react';
 
 const CategoryCarousel = () => {
+  const { categories } = useShopData();
+
   const handleCategoryClick = (e, slug) => {
     e.preventDefault();
     const element = document.querySelector('#products');

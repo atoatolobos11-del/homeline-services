@@ -1,183 +1,144 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import cors from 'cors'
+import dotenv from 'dotenv'
+import express from 'express'
+import { createClient } from '@supabase/supabase-js'
+import { categories as localCategories, products as localProducts } from './data/products.js'
 
-dotenv.config();
+dotenv.config()
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+const app = express()
+const port = process.env.PORT || 5000
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// In-memory fallbacks (used only when Supabase is not configured)
+let newsletterSubscriptions = []
+let contactMessages = []
 
-// Sample product data
-const products = [
-  {
-    id: "eco-drinkware-01",
-    name: "Reusable Drinkware",
-    slug: "reusable-drinkware",
-    price: 43.85,
-    category: "Drinkware",
-    badge: "Promotion",
-    description: "Reusable drinkware designed for everyday sustainable living.",
-    image: "/images/products/drinkware.jpg",
-    colors: ["sage", "cream", "charcoal"],
-    featured: true,
-    bestSeller: false,
-    newArrival: false
-  },
-  {
-    id: "cookware-set-01",
-    name: "Non-Toxic Cookware Set",
-    slug: "non-toxic-cookware-set",
-    price: 189.99,
-    category: "Cooking",
-    badge: "Customer Favorite",
-    description: "Premium non-toxic cookware for healthy cooking.",
-    image: "/images/products/cookware.jpg",
-    colors: ["forest", "olive"],
-    featured: true,
-    bestSeller: true,
-    newArrival: false
-  },
-  {
-    id: "toaster-01",
-    name: "Eco-Friendly Toaster",
-    slug: "eco-friendly-toaster",
-    price: 89.50,
-    category: "Kitchen Essentials",
-    badge: "New",
-    description: "Energy-efficient toaster with sustainable materials.",
-    image: "/images/products/toaster.jpg",
-    colors: ["cream", "sage"],
-    featured: true,
-    bestSeller: false,
-    newArrival: true
-  },
-  {
-    id: "utensil-holder-01",
-    name: "Bamboo Utensil Holder",
-    slug: "bamboo-utensil-holder",
-    price: 34.99,
-    category: "Storage",
-    badge: null,
-    description: "Natural bamboo utensil organizer for your kitchen.",
-    image: "/images/products/utensil-holder.jpg",
-    colors: ["natural"],
-    featured: true,
-    bestSeller: false,
-    newArrival: false
-  },
-  {
-    id: "coffee-press-01",
-    name: "French Press Coffee Maker",
-    slug: "french-press-coffee-maker",
-    price: 59.99,
-    category: "Coffee & Drinkware",
-    badge: "Best Seller",
-    description: "Classic French press for rich, aromatic coffee.",
-    image: "/images/products/coffee-press.jpg",
-    colors: ["forest", "cream"],
-    featured: false,
-    bestSeller: true,
-    newArrival: false
-  },
-  {
-    id: "mixing-bowls-01",
-    name: "Ceramic Mixing Bowl Set",
-    slug: "ceramic-mixing-bowl-set",
-    price: 75.00,
-    category: "Cooking",
-    badge: null,
-    description: "Set of three handcrafted ceramic mixing bowls.",
-    image: "/images/products/bowls.jpg",
-    colors: ["sage", "cream", "olive"],
-    featured: false,
-    bestSeller: true,
-    newArrival: false
+// Supabase client — active only when both env vars are set
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_ANON_KEY
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
+
+app.use(cors())
+app.use(express.json())
+
+// Map snake_case DB rows to the camelCase shape the frontend expects
+const mapProduct = (row) => ({
+  id: row.id,
+  name: row.name,
+  slug: row.slug,
+  price: Number(row.price),
+  category: row.category,
+  badge: row.badge,
+  description: row.description,
+  image: row.image,
+  colors: row.colors ?? [],
+  featured: row.featured,
+  bestSeller: row.best_seller,
+  newArrival: row.new_arrival,
+})
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, database: supabase ? 'supabase' : 'local' })
+})
+
+app.get('/api/products', async (_req, res) => {
+  if (!supabase) {
+    res.json(localProducts)
+    return
   }
-];
-
-const categories = [
-  {
-    id: "coffee-drinkware",
-    name: "Coffee & Drinkware",
-    image: "/images/categories/coffee.jpg",
-    slug: "coffee-drinkware"
-  },
-  {
-    id: "cooking",
-    name: "Cooking",
-    image: "/images/categories/cooking.jpg",
-    slug: "cooking"
-  },
-  {
-    id: "natural-materials",
-    name: "Natural Materials",
-    image: "/images/categories/natural.jpg",
-    slug: "natural-materials"
-  },
-  {
-    id: "storage",
-    name: "Storage",
-    image: "/images/categories/storage.jpg",
-    slug: "storage"
-  },
-  {
-    id: "kitchen-essentials",
-    name: "Kitchen Essentials",
-    image: "/images/categories/essentials.jpg",
-    slug: "kitchen-essentials"
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('sort_order', { ascending: true })
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
   }
-];
+  res.json(data.map(mapProduct))
+})
 
-// Routes
-app.get('/', (req, res) => {
-  res.json({ message: 'Homeline API Server' });
-});
-
-// Get all products
-app.get('/api/products', (req, res) => {
-  res.json(products);
-});
-
-// Get product by ID
-app.get('/api/products/:id', (req, res) => {
-  const product = products.find(p => p.id === req.params.id);
-  if (product) {
-    res.json(product);
-  } else {
-    res.status(404).json({ message: 'Product not found' });
+app.get('/api/products/:id', async (req, res) => {
+  const { id } = req.params
+  if (!supabase) {
+    const product = localProducts.find((item) => item.id === id)
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' })
+      return
+    }
+    res.json(product)
+    return
   }
-});
-
-// Get all categories
-app.get('/api/categories', (req, res) => {
-  res.json(categories);
-});
-
-// Newsletter subscription
-app.post('/api/newsletter', (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  const { data, error } = await supabase.from('products').select('*').eq('id', id).maybeSingle()
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
   }
-  // In a real app, you would save this to a database
-  res.json({ message: 'Successfully subscribed to newsletter', email });
-});
+  if (!data) {
+    res.status(404).json({ error: 'Product not found' })
+    return
+  }
+  res.json(mapProduct(data))
+})
 
-// Contact form
-app.post('/api/contact', (req, res) => {
-  const { name, email, message } = req.body;
+app.get('/api/categories', async (_req, res) => {
+  if (!supabase) {
+    res.json(localCategories)
+    return
+  }
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .order('sort_order', { ascending: true })
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.json(data)
+})
+
+app.post('/api/newsletter', async (req, res) => {
+  const { email } = req.body
+  if (!email || typeof email !== 'string') {
+    res.status(400).json({ error: 'Email is required' })
+    return
+  }
+  if (!supabase) {
+    newsletterSubscriptions.push({ email, createdAt: new Date().toISOString() })
+    res.status(201).json({ ok: true })
+    return
+  }
+  const { error } = await supabase.from('newsletter_subscribers').insert({ email })
+  if (error) {
+    // Postgres unique violation (23505) = already subscribed
+    if (error.code === '23505') {
+      res.status(409).json({ error: 'Email is already subscribed' })
+      return
+    }
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.status(201).json({ ok: true })
+})
+
+app.post('/api/contact', async (req, res) => {
+  const { name, email, message } = req.body
   if (!name || !email || !message) {
-    return res.status(400).json({ message: 'All fields are required' });
+    res.status(400).json({ error: 'Name, email, and message are required' })
+    return
   }
-  // In a real app, you would save this to a database or send an email
-  res.json({ message: 'Message received successfully' });
-});
+  if (!supabase) {
+    contactMessages.push({ name, email, message, createdAt: new Date().toISOString() })
+    res.status(201).json({ ok: true })
+    return
+  }
+  const { error } = await supabase.from('contact_messages').insert({ name, email, message })
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.status(201).json({ ok: true })
+})
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(port, () => {
+  console.log(`Homeline API listening on ${port} (database: ${supabase ? 'supabase' : 'local'})`)
+})

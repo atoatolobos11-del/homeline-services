@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import ProductGrid from '../components/product/ProductGrid';
-import { products } from '../data/products';
+import { useShopData } from '../context/DataContext';
 
 const BestsellersPage = () => {
+  const { products } = useShopData();
   const bestsellers = products.filter((product) => product.bestSeller);
 
   return (
