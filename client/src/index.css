@@ -6,6 +6,15 @@
   body {
     @apply bg-cream text-charcoal font-sans;
   }
+
+  /* Every button shows a pointer so it's obvious it's clickable */
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {

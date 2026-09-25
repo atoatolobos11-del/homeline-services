@@ -25,7 +25,11 @@ export default {
         beige: '#e8e0d0',
         olive: '#697756',
         charcoal: '#2c2c2c',
-        muted: '#6b7669'
+        muted: '#6b7669',
+        forest: '#1a4d2e',
+        line: '#ddd6c6',
+        sage: '#9db39b',
+        sand: '#d6c7a3'
       },
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'],

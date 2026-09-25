@@ -136,13 +136,13 @@ const AboutPage = () => {
       <div className="mt-14 flex flex-wrap gap-4">
         <Link
           to="/"
-          className="inline-block rounded-full bg-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-primary-dark"
+          className="inline-block rounded-full bg-primary px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg active:scale-95"
         >
           Back to home
         </Link>
         <Link
           to="/shop"
-          className="inline-block rounded-full border border-primary px-6 py-3 text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
+          className="inline-block rounded-full border border-primary px-6 py-3 text-sm font-medium text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary hover:text-white hover:shadow-lg active:scale-95"
         >
           Explore products
         </Link>

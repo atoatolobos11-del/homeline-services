@@ -32,7 +32,7 @@ const ProductDetail = () => {
     return (
       <div className="mx-auto max-w-3xl px-4 py-24 text-center">
         <h1 className="text-3xl font-bold text-charcoal">Product not found</h1>
-        <Link to="/shop" className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-medium text-white">
+        <Link to="/shop" className="mt-6 inline-flex rounded-full bg-primary px-6 py-3 font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg active:scale-95">
           Back to shop
         </Link>
       </div>
@@ -84,7 +84,12 @@ const ProductDetail = () => {
                   key={color}
                   type="button"
                   onClick={() => setSelectedColor(color)}
-                  className={`rounded-full border px-4 py-2 text-sm capitalize transition ${selectedColor === color ? 'border-primary bg-primary text-white' : 'border-beige bg-cream text-charcoal hover:border-primary'}`}
+                  aria-pressed={selectedColor === color}
+                  className={`rounded-full border px-4 py-2 text-sm capitalize transition-all duration-200 ${
+                    selectedColor === color
+                      ? 'border-primary bg-primary text-white shadow-md ring-2 ring-primary/25'
+                      : 'border-beige bg-cream text-charcoal hover:-translate-y-0.5 hover:border-primary hover:shadow-sm active:scale-95'
+                  }`}
                 >
                   {color}
                 </button>
@@ -100,7 +105,12 @@ const ProductDetail = () => {
                   key={size}
                   type="button"
                   onClick={() => setSelectedSize(size)}
-                  className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${selectedSize === size ? 'border-primary bg-primary text-white' : 'border-beige bg-white text-charcoal hover:border-primary'}`}
+                  aria-pressed={selectedSize === size}
+                  className={`rounded-xl border px-3 py-3 text-sm font-medium transition-all duration-200 ${
+                    selectedSize === size
+                      ? 'border-primary bg-primary text-white shadow-md ring-2 ring-primary/25'
+                      : 'border-beige bg-white text-charcoal hover:-translate-y-0.5 hover:border-primary hover:shadow-sm active:scale-95'
+                  }`}
                 >
                   {size}
                 </button>
@@ -111,11 +121,11 @@ const ProductDetail = () => {
           <div className="mt-6 flex items-center justify-between rounded-xl border border-beige px-4 py-2">
             <span className="text-sm font-semibold text-charcoal">Quantity</span>
             <div className="flex items-center gap-4">
-              <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} aria-label="Decrease quantity" className="rounded-full p-2 text-primary transition hover:bg-cream">
+              <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} aria-label="Decrease quantity" className="rounded-full p-2 text-primary transition hover:scale-110 hover:bg-cream active:scale-95">
                 <Minus className="h-4 w-4" />
               </button>
               <span className="w-5 text-center font-semibold">{quantity}</span>
-              <button type="button" onClick={() => setQuantity((value) => value + 1)} aria-label="Increase quantity" className="rounded-full p-2 text-primary transition hover:bg-cream">
+              <button type="button" onClick={() => setQuantity((value) => value + 1)} aria-label="Increase quantity" className="rounded-full p-2 text-primary transition hover:scale-110 hover:bg-cream active:scale-95">
                 <Plus className="h-4 w-4" />
               </button>
             </div>

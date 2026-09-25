@@ -55,10 +55,11 @@ export default function Shop() {
               key={category}
               type="button"
               onClick={() => setCategory(category)}
-              className={`rounded-full px-4 py-2 text-sm transition ${
+              aria-pressed={selectedCategory === category}
+              className={`rounded-full px-4 py-2 text-sm transition-all duration-200 ${
                 selectedCategory === category
-                  ? 'bg-forest text-cream'
-                  : 'border border-line bg-white hover:border-forest/40'
+                  ? 'bg-forest font-medium text-cream shadow-md ring-2 ring-forest/25 hover:bg-primary-dark hover:shadow-lg'
+                  : 'border border-line bg-white hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 hover:shadow-sm active:scale-95'
               }`}
             >
               {category}
@@ -91,7 +92,7 @@ export default function Shop() {
               setCategory('All')
               setQuery('')
             }}
-            className="mt-6 rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-cream transition hover:-translate-y-0.5 hover:shadow-lg"
+            className="mt-6 rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-cream transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg active:scale-95"
           >
             Show all products
           </button>
