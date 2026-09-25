@@ -4,10 +4,14 @@ import { ArrowLeft, CreditCard, Lock, CheckCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Toast from '../components/ui/Toast';
 
+const apiBase = import.meta.env.VITE_API_URL || '/api';
+
 const Checkout = () => {
   const { cartItems, cartTotal, clearCart } = useCart();
   const [currentStep, setCurrentStep] = useState(1);
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Order placed successfully!');
+  const [toastType, setToastType] = useState('success');
   const [orderComplete, setOrderComplete] = useState(false);
   const [shippingMethod, setShippingMethod] = useState('standard');
   const [promoCode, setPromoCode] = useState('');
@@ -102,24 +106,58 @@ const Checkout = () => {
   const taxAmount = (cartTotal + shippingCost + giftWrapCost - discountAmount) * 0.08;
   const totalAmount = cartTotal + shippingCost + giftWrapCost + taxAmount - discountAmount;
 
-  const handleSubmitPayment = (e) => {
+  const handleSubmitPayment = async (e) => {
     e.preventDefault();
 
-    if (paymentMethod === 'paypal' || paymentMethod === 'cod' || paymentMethod === 'wallet') {
-      setOrderComplete(true);
-      setShowToast(true);
-      setTimeout(() => {
-        clearCart();
-      }, 2000);
-      return;
-    }
+    const paymentValid =
+      paymentMethod === 'paypal' || paymentMethod === 'cod' || paymentMethod === 'wallet'
+        ? true
+        : Boolean(
+            formData.cardNumber && formData.cardName && formData.expiryDate && formData.cvv
+          );
 
-    if (formData.cardNumber && formData.cardName && formData.expiryDate && formData.cvv) {
+    if (!paymentValid) return;
+
+    setShowToast(false);
+
+    // Aggregate quantities by the real product id (custom items have baseProductId)
+    const totals = {};
+    for (const item of cartItems) {
+      const productId = item.baseProductId || item.id;
+      totals[productId] = (totals[productId] || 0) + (item.quantity || 1);
+    }
+    const items = Object.entries(totals).map(([id, quantity]) => ({ id, quantity }));
+
+    try {
+      const res = await fetch(`${apiBase}/inventory/order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setToastType('error');
+        setToastMessage(
+          body.insufficient?.length
+            ? 'Some items in your cart are out of stock. Please update your cart and try again.'
+            : body.error || 'Could not complete your order. Please try again.'
+        );
+        setShowToast(true);
+        return;
+      }
+
+      setToastType('success');
+      setToastMessage('Order placed successfully!');
       setOrderComplete(true);
       setShowToast(true);
       setTimeout(() => {
         clearCart();
       }, 2000);
+    } catch (err) {
+      setToastType('error');
+      setToastMessage('Network error — could not reach the order service. Please try again.');
+      setShowToast(true);
     }
   };
 
@@ -730,10 +768,10 @@ const Checkout = () => {
       </div>
 
       {showToast && (
-        <Toast 
-          message="Order placed successfully!"
-          type="success"
-          onClose={() => setShowToast(false)} 
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
         />
       )}
     </div>

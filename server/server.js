@@ -30,6 +30,7 @@ const mapProduct = (row) => ({
   featured: row.featured,
   bestSeller: row.best_seller,
   newArrival: row.new_arrival,
+  stock: Number(row.stock ?? 0),
 })
 
 const requireSupabase = (_req, res) => {
@@ -69,6 +70,86 @@ app.get('/api/products/:id', async (req, res) => {
     return
   }
   res.json(mapProduct(data))
+})
+
+// ---------- Inventory ----------
+
+app.get('/api/inventory', async (_req, res) => {
+  const client = requireSupabase(_req, res)
+  if (!client) return
+  const { data, error } = await client.from('products').select('*').order('sort_order', { ascending: true })
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.json(data.map(mapProduct))
+})
+
+// Manual stock edit from the Inventory dashboard
+app.patch('/api/inventory/:id', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  const stock = Number(req.body?.stock)
+  if (!Number.isInteger(stock) || stock < 0 || stock > 99999) {
+    res.status(400).json({ error: 'Stock must be a whole number between 0 and 99999' })
+    return
+  }
+  const { data, error } = await client.rpc('set_product_stock', {
+    product_id: req.params.id,
+    new_stock: stock,
+  })
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.json({ ok: true, id: req.params.id, stock: data })
+})
+
+// Called at checkout — atomically reduces stock for every paid item.
+// Returns 409 if any item has insufficient stock (order is not completed).
+app.post('/api/inventory/order', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  const items = req.body?.items
+  if (!Array.isArray(items) || items.length === 0) {
+    res.status(400).json({ error: 'items must be a non-empty array' })
+    return
+  }
+  for (const item of items) {
+    if (!item || typeof item.id !== 'string' || !Number.isInteger(item.quantity) || item.quantity < 1) {
+      res.status(400).json({ error: 'Each item needs an id and a quantity of at least 1' })
+      return
+    }
+  }
+
+  // Pre-check every item first so a failed order never partially decrements stock
+  const ids = items.map((item) => item.id)
+  const { data: rows, error: fetchError } = await client.from('products').select('id, stock').in('id', ids)
+  if (fetchError) {
+    res.status(500).json({ error: fetchError.message })
+    return
+  }
+  const stockById = Object.fromEntries((rows || []).map((row) => [row.id, Number(row.stock ?? 0)]))
+  const insufficient = items.filter((item) => (stockById[item.id] ?? 0) < item.quantity).map((item) => item.id)
+
+  if (insufficient.length > 0) {
+    res.status(409).json({ error: 'Not enough stock for one or more items', insufficient })
+    return
+  }
+
+  const updated = []
+  for (const item of items) {
+    const { data, error } = await client.rpc('decrement_stock', {
+      product_id: item.id,
+      amount: item.quantity,
+    })
+    if (error) {
+      res.status(500).json({ error: error.message })
+      return
+    }
+    updated.push({ id: item.id, stock: data })
+  }
+  res.json({ ok: true, updated })
 })
 
 app.get('/api/categories', async (_req, res) => {

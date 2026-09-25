@@ -23,6 +23,7 @@ const Header = () => {
     { name: 'Shop', href: '/catalog' },
     { name: 'Bestsellers', href: '/bestsellers' },
     { name: 'Categories', href: '/categories' },
+    ...(currentUser ? [{ name: 'Inventory', href: '/inventory' }] : []),
     { name: 'About', href: '/about' }
   ];
 

@@ -5,10 +5,12 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Toast from '../ui/Toast';
 import { useCart } from '../../hooks/useCart';
+import { getStockStatus } from '../../utils/stock';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
   const [showToast, setShowToast] = useState(false);
+  const stockStatus = getStockStatus(product.stock);
 
   const getBadgeVariant = (badge) => {
     if (!badge) return 'default';
@@ -20,6 +22,7 @@ const ProductCard = ({ product }) => {
   };
 
   const handleAddToCart = () => {
+    if (stockStatus === 'out') return;
     addToCart(product);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
@@ -32,9 +35,17 @@ const ProductCard = ({ product }) => {
           <img
             src={product.image}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${stockStatus === 'out' ? 'grayscale opacity-60' : ''}`}
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f3d35]/25 via-transparent to-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+          {stockStatus === 'out' && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="rounded-full bg-charcoal/85 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+                Out of Stock
+              </span>
+            </div>
+          )}
 
           <div className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-[#1a4d2e] shadow-sm backdrop-blur-sm transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" title="Eco-friendly pick">
             <Leaf className="h-4 w-4" aria-hidden="true" />
@@ -80,17 +91,27 @@ const ProductCard = ({ product }) => {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <p className="text-[1.4rem] font-bold text-[#0f3d35]">
-              ₱{product.price.toFixed(2)}
-            </p>
+            <div>
+              <p className="text-[1.4rem] font-bold text-[#0f3d35]">
+                ₱{product.price.toFixed(2)}
+              </p>
+              {stockStatus === 'low' && (
+                <p className="mt-0.5 text-xs font-semibold text-[#a06a10]">
+                  Only {product.stock} left
+                </p>
+              )}
+            </div>
 
             <Button
               size="sm"
               onClick={handleAddToCart}
-              className="rounded-full bg-[#0f3d35] px-4 py-2 text-sm font-medium text-white hover:bg-[#0d312c]"
+              disabled={stockStatus === 'out'}
+              className={`rounded-full bg-[#0f3d35] px-4 py-2 text-sm font-medium text-white hover:bg-[#0d312c] ${
+                stockStatus === 'out' ? 'disabled:pointer-events-none disabled:opacity-40' : ''
+              }`}
             >
               <ShoppingCart className="mr-1 h-4 w-4" />
-              Add
+              {stockStatus === 'out' ? 'Sold out' : 'Add'}
             </Button>
           </div>
         </div>

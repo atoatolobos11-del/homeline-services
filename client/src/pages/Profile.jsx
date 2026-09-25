@@ -56,6 +56,18 @@ const Profile = () => {
             <p className="mt-2 text-xl font-semibold text-charcoal">Active</p>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/inventory')}
+          className="mt-8 w-full rounded-2xl bg-cream p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-beige hover:shadow-lg active:scale-[0.99]"
+        >
+          <p className="text-sm text-muted">Store management</p>
+          <p className="mt-2 text-xl font-semibold text-charcoal">Manage inventory →</p>
+          <p className="mt-1 text-sm text-muted">
+            View and update product stock levels.
+          </p>
+        </button>
       </div>
     </div>
   );

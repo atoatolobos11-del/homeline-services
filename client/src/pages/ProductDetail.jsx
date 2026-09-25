@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Toast from '../components/ui/Toast';
 import { useCart } from '../hooks/useCart';
 import { useShopData } from '../context/DataContext';
+import { getStockStatus } from '../utils/stock';
 
 const sizeOptions = ['Small', 'Medium', 'Large'];
 
@@ -14,6 +15,9 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const { products, loading } = useShopData();
   const product = products.find((item) => item.slug === slug);
+  const stockStatus = product ? getStockStatus(product.stock) : 'out';
+  const soldOut = stockStatus === 'out';
+  const maxQuantity = product ? Math.max(1, product.stock) : 1;
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Natural');
   const [selectedSize, setSelectedSize] = useState('Medium');
   const [quantity, setQuantity] = useState(1);
@@ -40,6 +44,10 @@ const ProductDetail = () => {
   }
 
   const handleAddToCart = () => {
+    if (soldOut || quantity > product.stock) {
+      return;
+    }
+
     const customizedProduct = {
       ...product,
       id: `${product.id}-${selectedColor}-${selectedSize}`,
@@ -74,6 +82,20 @@ const ProductDetail = () => {
           <p className="text-xs uppercase tracking-[0.2em] text-muted">{product.category}</p>
           <h1 className="mt-3 text-4xl font-bold text-charcoal">{product.name}</h1>
           <p className="mt-4 text-3xl font-bold text-primary">₱{product.price.toFixed(2)}</p>
+
+          {soldOut ? (
+            <p className="mt-2 inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-600">
+              Out of Stock
+            </p>
+          ) : (
+            <p
+              className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${
+                stockStatus === 'low' ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'
+              }`}
+            >
+              {stockStatus === 'low' ? `Only ${product.stock} left in stock` : 'In Stock'}
+            </p>
+          )}
           <p className="mt-5 leading-7 text-muted">{product.description}</p>
 
           <div className="mt-8">
@@ -121,19 +143,39 @@ const ProductDetail = () => {
           <div className="mt-6 flex items-center justify-between rounded-xl border border-beige px-4 py-2">
             <span className="text-sm font-semibold text-charcoal">Quantity</span>
             <div className="flex items-center gap-4">
-              <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} aria-label="Decrease quantity" className="rounded-full p-2 text-primary transition hover:scale-110 hover:bg-cream active:scale-95">
+              <button
+                type="button"
+                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                aria-label="Decrease quantity"
+                disabled={quantity <= 1}
+                className="rounded-full p-2 text-primary transition hover:scale-110 hover:bg-cream active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+              >
                 <Minus className="h-4 w-4" />
               </button>
               <span className="w-5 text-center font-semibold">{quantity}</span>
-              <button type="button" onClick={() => setQuantity((value) => value + 1)} aria-label="Increase quantity" className="rounded-full p-2 text-primary transition hover:scale-110 hover:bg-cream active:scale-95">
+              <button
+                type="button"
+                onClick={() => setQuantity((value) => Math.min(maxQuantity, value + 1))}
+                aria-label="Increase quantity"
+                disabled={soldOut || quantity >= maxQuantity}
+                className="rounded-full p-2 text-primary transition hover:scale-110 hover:bg-cream active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+              >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          <Button type="button" size="lg" className="mt-8 w-full" onClick={handleAddToCart}>
+          <Button
+            type="button"
+            size="lg"
+            className={`mt-8 w-full ${
+              soldOut ? 'disabled:pointer-events-none disabled:opacity-40' : ''
+            }`}
+            onClick={handleAddToCart}
+            disabled={soldOut || quantity > product.stock}
+          >
             <ShoppingCart className="mr-2 h-5 w-5" />
-            Add customized item
+            {soldOut ? 'Out of Stock' : 'Add customized item'}
           </Button>
         </div>
       </div>

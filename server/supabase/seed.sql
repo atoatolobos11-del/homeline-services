@@ -19,9 +19,13 @@ create table if not exists public.products (
   featured    boolean not null default false,
   best_seller boolean not null default false,
   new_arrival boolean not null default false,
+  stock       integer not null default 12,
   sort_order  integer not null default 0,
   created_at  timestamptz not null default now()
 );
+
+-- Make sure existing databases get the stock column too.
+alter table public.products add column if not exists stock integer not null default 12;
 
 create table if not exists public.categories (
   id          text primary key,
@@ -54,48 +58,48 @@ create table if not exists public.contact_messages (
 -- ---------- Seed: products ----------
 
 insert into public.products
-  (id, name, slug, price, category, badge, description, image, colors, featured, best_seller, new_arrival, sort_order)
+  (id, name, slug, price, category, badge, description, image, colors, featured, best_seller, new_arrival, stock, sort_order)
 values
   ('eco-bottle-01', 'Reusable Drinkware', 'reusable-drinkware', 43.85, 'Drinkware', 'Promotion',
    'Reusable drinkware designed for everyday sustainable living, crafted from recycled stainless steel with a sage-toned finish.',
    'https://images.pexels.com/photos/7879895/pexels-photo-7879895.jpeg?auto=compress&cs=tinysrgb&w=900',
-   '["sage","cream","charcoal"]', true, true, false, 1),
+   '["sage","cream","charcoal"]', true, true, false, 8, 1),
 
   ('cookware-02', 'Non-Toxic Cookware Set', 'non-toxic-cookware-set', 189.00, 'Cooking', 'New',
    'A ceramic-coated cookware set free from PTFE and PFOA, built for slow, mindful cooking and lasting kitchen rituals.',
    'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=900&q=80',
-   '["cream","sage"]', true, true, true, 2),
+   '["cream","sage"]', true, true, true, 12, 2),
 
   ('toaster-03', 'Eco-Friendly Toaster', 'eco-friendly-toaster', 76.50, 'Kitchen Essentials', 'Customer favorite',
    'Energy-efficient toaster with a quiet motor and recycled-aluminum housing in warm cream and forest tones.',
    'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80',
-   '["cream","charcoal"]', true, true, false, 3),
+   '["cream","charcoal"]', true, true, false, 6, 3),
 
   ('bamboo-04', 'Bamboo Utensil Holder', 'bamboo-utensil-holder', 28.40, 'Storage', 'New',
    'Hand-finished bamboo holder that keeps tools upright and within reach, made from rapidly renewable materials.',
    'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=900&q=80',
-   '["sage","cream"]', true, false, true, 4),
+   '["sage","cream"]', true, false, true, 15, 4),
 
   ('pour-over-05', 'Stoneware Pour-Over', 'stoneware-pour-over', 54.00, 'Drinkware', 'Customer favorite',
    'A quietly elegant pour-over in unglazed stoneware, made for slower mornings and lower-waste coffee rituals.',
    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80',
-   '["cream","charcoal"]', false, true, false, 5),
+   '["cream","charcoal"]', false, true, false, 10, 5),
 
   ('linen-06', 'Organic Linen Towels', 'organic-linen-towels', 36.00, 'Kitchen Essentials', 'Promotion',
    'Soft organic linen towels in muted sage and sand, designed to last through years of daily use.',
    'https://images.pexels.com/photos/4805220/pexels-photo-4805220.jpeg?auto=compress&cs=tinysrgb&w=900',
-   '["sage","cream","olive"]', false, false, true, 6),
+   '["sage","cream","olive"]', false, false, true, 4, 6),
 
   ('canister-07', 'Glass Storage Canisters', 'glass-storage-canisters', 48.20, 'Storage', null,
    'Clear glass canisters with beechwood lids for pantry staples, spices, and low-waste bulk shopping.',
    'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=900&q=80',
-   '["cream"]', false, false, true, 7),
+   '["cream"]', false, false, true, 0, 7),
 
   ('board-08', 'Walnut Serving Board', 'walnut-serving-board', 62.00, 'Natural Materials', 'Customer favorite',
    'A generously sized walnut board finished with food-safe oil, meant to be passed around the table for years.',
    'https://images.unsplash.com/photo-1543168256-418811576931?auto=format&fit=crop&w=900&q=80',
-   '["charcoal","cream"]', false, true, false, 8)
-on conflict (id) do update set image = excluded.image;
+   '["charcoal","cream"]', false, true, false, 9, 8)
+on conflict (id) do update set image = excluded.image, stock = excluded.stock;
 
 -- ---------- Seed: categories ----------
 
@@ -138,3 +142,36 @@ create policy "anon can subscribe" on public.newsletter_subscribers for insert w
 
 drop policy if exists "anon can send messages" on public.contact_messages;
 create policy "anon can send messages" on public.contact_messages for insert with check (true);
+
+-- ---------- Inventory ----------
+-- Stock changes always go through these two SECURITY DEFINER functions
+-- (owned by postgres), so the anon key can never edit product rows directly —
+-- it can only adjust the stock value, atomically.
+
+-- Manual update from the Inventory dashboard: set an exact stock number.
+create or replace function public.set_product_stock(product_id text, new_stock integer)
+returns integer
+language sql
+security definer
+set search_path = public
+as $$
+  update public.products
+     set stock = greatest(0, new_stock)
+   where id = product_id
+   returning stock;
+$$;
+
+-- Automatic update when an order is placed: subtract a quantity, but only if
+-- enough stock remains (never lets stock go negative, prevents overselling).
+create or replace function public.decrement_stock(product_id text, amount integer)
+returns integer
+language sql
+security definer
+set search_path = public
+as $$
+  update public.products
+     set stock = stock - amount
+   where id = product_id
+     and stock >= amount
+   returning stock;
+$$;

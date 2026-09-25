@@ -10,6 +10,7 @@ import BestsellersPage from './pages/BestsellersPage'
 import CategoriesPage from './pages/CategoriesPage'
 import AboutPage from './pages/AboutPage'
 import Profile from './pages/Profile'
+import Inventory from './pages/Inventory'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import ProductDetail from './pages/ProductDetail'
@@ -34,6 +35,7 @@ function AppLayout({ currentUser }) {
           <Route path="/categories" element={currentUser ? <CategoriesPage /> : <Navigate to="/login" replace />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/profile" element={currentUser ? <Profile /> : <Navigate to="/login" replace />} />
+          <Route path="/inventory" element={currentUser ? <Inventory /> : <Navigate to="/login" replace />} />
           <Route path="/cart" element={currentUser ? <Cart /> : <Navigate to="/login" replace />} />
           <Route path="/checkout" element={currentUser ? <Checkout /> : <Navigate to="/login" replace />} />
           <Route path="/product/:slug" element={currentUser ? <ProductDetail /> : <Navigate to="/login" replace />} />
