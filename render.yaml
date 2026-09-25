@@ -1,0 +1,17 @@
+# Render Blueprint — deploys the Express/Supabase backend as a free web service.
+# Usage: dashboard.render.com -> New -> Blueprint -> select this repo -> fill env values.
+
+services:
+  - type: web
+    name: homeline-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false        # Render will ask you to type it during creation
+      - key: SUPABASE_ANON_KEY
+        sync: false        # Render will ask you to type it during creation
