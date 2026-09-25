@@ -58,7 +58,7 @@ insert into public.products
 values
   ('eco-bottle-01', 'Reusable Drinkware', 'reusable-drinkware', 43.85, 'Drinkware', 'Promotion',
    'Reusable drinkware designed for everyday sustainable living, crafted from recycled stainless steel with a sage-toned finish.',
-   'https://images.unsplash.com/photo-1602143407151-011eace89837?auto=format&fit=crop&w=900&q=80',
+   'https://images.pexels.com/photos/7879895/pexels-photo-7879895.jpeg?auto=compress&cs=tinysrgb&w=900',
    '["sage","cream","charcoal"]', true, true, false, 1),
 
   ('cookware-02', 'Non-Toxic Cookware Set', 'non-toxic-cookware-set', 189.00, 'Cooking', 'New',
@@ -83,7 +83,7 @@ values
 
   ('linen-06', 'Organic Linen Towels', 'organic-linen-towels', 36.00, 'Kitchen Essentials', 'Promotion',
    'Soft organic linen towels in muted sage and sand, designed to last through years of daily use.',
-   'https://images.unsplash.com/photo-1582735689369-4fe89c594006?auto=format&fit=crop&w=900&q=80',
+   'https://images.pexels.com/photos/4805220/pexels-photo-4805220.jpeg?auto=compress&cs=tinysrgb&w=900',
    '["sage","cream","olive"]', false, false, true, 6),
 
   ('canister-07', 'Glass Storage Canisters', 'glass-storage-canisters', 48.20, 'Storage', null,
@@ -95,7 +95,7 @@ values
    'A generously sized walnut board finished with food-safe oil, meant to be passed around the table for years.',
    'https://images.unsplash.com/photo-1543168256-418811576931?auto=format&fit=crop&w=900&q=80',
    '["charcoal","cream"]', false, true, false, 8)
-on conflict (id) do nothing;
+on conflict (id) do update set image = excluded.image;
 
 -- ---------- Seed: categories ----------
 
@@ -110,7 +110,7 @@ values
   ('storage',   'Storage',           'Organize your kitchen with eco-friendly containers and organizers', 'storage',
    'https://images.unsplash.com/photo-1556912173-46c336c7fd55?auto=format&fit=crop&w=600&q=80', 4),
   ('essentials','Kitchen Essentials','Everything you need for a sustainable, well-equipped kitchen', 'kitchen-essentials',
-   'https://images.unsplash.com/photo-1556911220-bff31c987cd3?auto=format&fit=crop&w=600&q=80', 5)
+   'https://images.pexels.com/photos/9475718/pexels-photo-9475718.jpeg?auto=compress&cs=tinysrgb&w=600', 5)
 on conflict (id) do update set
   name        = excluded.name,
   description = excluded.description,

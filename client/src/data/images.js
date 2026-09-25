@@ -3,13 +3,14 @@
 // is served live from the API (Supabase).
 
 export const images = {
-  hero: 'https://images.unsplash.com/photo-1556911220-bff31c987cd3?auto=format&fit=crop&w=1800&q=80',
+  hero:
+    'https://images.pexels.com/photos/7168051/pexels-photo-7168051.jpeg?auto=compress&cs=tinysrgb&w=1800',
   lifestyle:
-    'https://images.unsplash.com/photo-1600489000022-c2086d6f8c8f?auto=format&fit=crop&w=1600&q=80',
+    'https://images.pexels.com/photos/13009887/pexels-photo-13009887.jpeg?auto=compress&cs=tinysrgb&w=1600',
   bestSellers:
     'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1400&q=80',
   newArrival:
-    'https://images.unsplash.com/photo-1556909172-54557c5e2fb7?auto=format&fit=crop&w=1400&q=80',
+    'https://images.pexels.com/photos/12115340/pexels-photo-12115340.jpeg?auto=compress&cs=tinysrgb&w=1400',
   editorialMain:
     'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=80',
   editorial2:
