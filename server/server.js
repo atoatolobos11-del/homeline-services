@@ -2,18 +2,13 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import { createClient } from '@supabase/supabase-js'
-import { categories as localCategories, products as localProducts } from './data/products.js'
 
 dotenv.config()
 
 const app = express()
 const port = process.env.PORT || 5000
 
-// In-memory fallbacks (used only when Supabase is not configured)
-let newsletterSubscriptions = []
-let contactMessages = []
-
-// Supabase client — active only when both env vars are set
+// Supabase client — the single source of truth.
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_ANON_KEY
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
@@ -37,19 +32,22 @@ const mapProduct = (row) => ({
   newArrival: row.new_arrival,
 })
 
+const requireSupabase = (_req, res) => {
+  if (!supabase) {
+    res.status(503).json({ error: 'Supabase is not configured (set SUPABASE_URL and SUPABASE_ANON_KEY)' })
+    return null
+  }
+  return supabase
+}
+
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, database: supabase ? 'supabase' : 'local' })
+  res.json({ ok: true, database: supabase ? 'supabase' : 'unconfigured' })
 })
 
 app.get('/api/products', async (_req, res) => {
-  if (!supabase) {
-    res.json(localProducts)
-    return
-  }
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('sort_order', { ascending: true })
+  const client = requireSupabase(_req, res)
+  if (!client) return
+  const { data, error } = await client.from('products').select('*').order('sort_order', { ascending: true })
   if (error) {
     res.status(500).json({ error: error.message })
     return
@@ -58,17 +56,10 @@ app.get('/api/products', async (_req, res) => {
 })
 
 app.get('/api/products/:id', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
   const { id } = req.params
-  if (!supabase) {
-    const product = localProducts.find((item) => item.id === id)
-    if (!product) {
-      res.status(404).json({ error: 'Product not found' })
-      return
-    }
-    res.json(product)
-    return
-  }
-  const { data, error } = await supabase.from('products').select('*').eq('id', id).maybeSingle()
+  const { data, error } = await client.from('products').select('*').eq('id', id).maybeSingle()
   if (error) {
     res.status(500).json({ error: error.message })
     return
@@ -81,14 +72,9 @@ app.get('/api/products/:id', async (req, res) => {
 })
 
 app.get('/api/categories', async (_req, res) => {
-  if (!supabase) {
-    res.json(localCategories)
-    return
-  }
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('sort_order', { ascending: true })
+  const client = requireSupabase(_req, res)
+  if (!client) return
+  const { data, error } = await client.from('categories').select('*').order('sort_order', { ascending: true })
   if (error) {
     res.status(500).json({ error: error.message })
     return
@@ -97,19 +83,15 @@ app.get('/api/categories', async (_req, res) => {
 })
 
 app.post('/api/newsletter', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
   const { email } = req.body
   if (!email || typeof email !== 'string') {
     res.status(400).json({ error: 'Email is required' })
     return
   }
-  if (!supabase) {
-    newsletterSubscriptions.push({ email, createdAt: new Date().toISOString() })
-    res.status(201).json({ ok: true })
-    return
-  }
-  const { error } = await supabase.from('newsletter_subscribers').insert({ email })
+  const { error } = await client.from('newsletter_subscribers').insert({ email })
   if (error) {
-    // Postgres unique violation (23505) = already subscribed
     if (error.code === '23505') {
       res.status(409).json({ error: 'Email is already subscribed' })
       return
@@ -121,17 +103,14 @@ app.post('/api/newsletter', async (req, res) => {
 })
 
 app.post('/api/contact', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
   const { name, email, message } = req.body
   if (!name || !email || !message) {
     res.status(400).json({ error: 'Name, email, and message are required' })
     return
   }
-  if (!supabase) {
-    contactMessages.push({ name, email, message, createdAt: new Date().toISOString() })
-    res.status(201).json({ ok: true })
-    return
-  }
-  const { error } = await supabase.from('contact_messages').insert({ name, email, message })
+  const { error } = await client.from('contact_messages').insert({ name, email, message })
   if (error) {
     res.status(500).json({ error: error.message })
     return
@@ -140,5 +119,5 @@ app.post('/api/contact', async (req, res) => {
 })
 
 app.listen(port, () => {
-  console.log(`Homeline API listening on ${port} (database: ${supabase ? 'supabase' : 'local'})`)
+  console.log(`Homeline API listening on ${port} (database: ${supabase ? 'supabase' : 'unconfigured'})`)
 })

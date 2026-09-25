@@ -1,21 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import {
-  products as localProducts,
-  categories as localCategories,
-} from '../data/products'
 
 const DataContext = createContext(null)
 
 export function DataProvider({ children }) {
   const apiBase = import.meta.env.VITE_API_URL || '/api'
 
-  // Start with local data so the UI is instantly usable; swap to Supabase
-  // data as soon as the API responds. If the API is unreachable, the local
-  // catalog stays in place so the site never breaks.
-  const [products, setProducts] = useState(localProducts)
-  const [categories, setCategories] = useState(localCategories)
-  const [source, setSource] = useState('local')
+  // Live data only — no hardcoded fallback. Products/categories come
+  // exclusively from the API (which is backed by Supabase in production).
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [source, setSource] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -27,7 +23,7 @@ export function DataProvider({ children }) {
           fetch(`${apiBase}/categories`),
         ])
         if (!productsResponse.ok || !categoriesResponse.ok) {
-          throw new Error('API unavailable')
+          throw new Error(`API responded ${productsResponse.status}/${categoriesResponse.status}`)
         }
         const [apiProducts, apiCategories] = await Promise.all([
           productsResponse.json(),
@@ -38,8 +34,8 @@ export function DataProvider({ children }) {
           setCategories(apiCategories)
           setSource('supabase')
         }
-      } catch {
-        // Keep the local fallback data.
+      } catch (err) {
+        if (!cancelled) setError(err.message)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -53,8 +49,8 @@ export function DataProvider({ children }) {
   }, [apiBase])
 
   const value = useMemo(
-    () => ({ products, categories, source, loading }),
-    [products, categories, source, loading],
+    () => ({ products, categories, source, loading, error }),
+    [products, categories, source, loading, error],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

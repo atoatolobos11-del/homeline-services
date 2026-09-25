@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { images } from '../../data/products'
+import { images } from '../../data/images'
 import Button from '../ui/Button'
 
 const apiBase = import.meta.env.VITE_API_URL || '/api'

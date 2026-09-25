@@ -1,4 +1,4 @@
-import { images } from '../data/products'
+import { images } from '../data/images'
 import { useShopData } from '../context/DataContext'
 
 export default function Gallery() {

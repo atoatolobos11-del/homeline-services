@@ -12,12 +12,21 @@ const ProductDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { products } = useShopData();
+  const { products, loading } = useShopData();
   const product = products.find((item) => item.slug === slug);
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Natural');
   const [selectedSize, setSelectedSize] = useState('Medium');
   const [quantity, setQuantity] = useState(1);
   const [showToast, setShowToast] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-24 text-center">
+        <h1 className="text-3xl font-bold text-charcoal">Loading product…</h1>
+        <p className="mt-3 text-muted">Fetching from the live catalog.</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

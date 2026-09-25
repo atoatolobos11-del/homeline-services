@@ -1,4 +1,4 @@
-import { images } from '../data/products'
+import { images } from '../data/images'
 
 export default function About() {
   const apiBase = import.meta.env.VITE_API_URL || '/api'
