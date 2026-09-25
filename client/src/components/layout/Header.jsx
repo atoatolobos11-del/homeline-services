@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X, Eye, EyeOff } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import Button from '../ui/Button';
@@ -7,6 +7,7 @@ import CartSidebar from './CartSidebar';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -24,6 +25,16 @@ const Header = () => {
     { name: 'Categories', href: '/categories' },
     { name: 'About', href: '/about' }
   ];
+
+  // Which nav section are we currently in? Shop covers /catalog, /shop and
+  // product pages; the others match their own route.
+  const getActiveSection = (href) => {
+    const path = location.pathname;
+    if (href === '/catalog') {
+      return path === '/catalog' || path.startsWith('/shop') || path.startsWith('/product/');
+    }
+    return path.startsWith(href);
+  };
 
   const handleNavClick = (e, href) => {
     e.preventDefault();
@@ -109,16 +120,24 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex shrink-0 items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
-                className="text-charcoal hover:text-primary transition-colors duration-200 cursor-pointer"
-              >
-                {link.name}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = getActiveSection(link.href);
+              return (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`border-b-2 pb-0.5 transition-colors duration-200 cursor-pointer ${
+                    isActive
+                      ? 'border-primary font-semibold text-primary'
+                      : 'border-transparent text-charcoal hover:text-primary'
+                  }`}
+                >
+                  {link.name}
+                </a>
+              );
+            })}
           </nav>
 
           {/* Search Bar - Desktop */}
@@ -210,16 +229,24 @@ const Header = () => {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-beige">
             <nav className="flex flex-col space-y-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  onClick={(e) => handleNavClick(e, link.href)}
-                  className="text-charcoal hover:text-primary transition-colors duration-200 py-2 cursor-pointer"
-                >
-                  {link.name}
-                </a>
-              ))}
+              {navLinks.map((link) => {
+                const isActive = getActiveSection(link.href);
+                return (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    onClick={(e) => handleNavClick(e, link.href)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`border-l-4 py-2 pl-3 transition-colors duration-200 cursor-pointer ${
+                      isActive
+                        ? 'border-primary font-semibold text-primary'
+                        : 'border-transparent text-charcoal hover:text-primary'
+                    }`}
+                  >
+                    {link.name}
+                  </a>
+                );
+              })}
             </nav>
           </div>
         )}
