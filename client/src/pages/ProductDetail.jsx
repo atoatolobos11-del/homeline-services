@@ -56,9 +56,7 @@ const ProductDetail = () => {
       selectedSize
     };
 
-    for (let index = 0; index < quantity; index += 1) {
-      addToCart(customizedProduct);
-    }
+    addToCart(customizedProduct, quantity);
     setShowToast(true);
   };
 

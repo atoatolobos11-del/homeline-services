@@ -20,17 +20,22 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('homeline-cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (product) => {
+  const addToCart = (product, quantity = 1) => {
     setCartItems(prev => {
       const existingItem = prev.find(item => item.id === product.id);
       if (existingItem) {
-        return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+        return prev.map(item => {
+          if (item.id !== product.id) return item;
+          const max = Math.max(1, Number(item.stock) || 1);
+          return { ...item, quantity: Math.min(max, item.quantity + quantity) };
+        });
       }
-      return [...prev, { ...product, quantity: 1 }];
+      const withDefaults = {
+        ...product,
+        quantity,
+        baseProductId: product.baseProductId || product.id,
+      };
+      return [...prev, withDefaults];
     });
   };
 
@@ -44,10 +49,37 @@ export const CartProvider = ({ children }) => {
       return;
     }
     setCartItems(prev =>
-      prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
-      )
+      prev.map(item => {
+        if (item.id !== productId) return item;
+        const max = Math.max(1, Number(item.stock) || 1);
+        return { ...item, quantity: Math.min(max, quantity) };
+      })
     );
+  };
+
+  // Shopee-style: swap the color/size of an item already in the cart.
+  // If a line with the new color/size already exists, the quantities merge.
+  const updateItemVariant = (itemId, next) => {
+    setCartItems(prev => {
+      const item = prev.find(i => i.id === itemId);
+      if (!item) return prev;
+
+      const baseId = item.baseProductId || item.id;
+      const color = next.color || item.selectedColor || 'Natural';
+      const size = next.size || item.selectedSize || 'Medium';
+      const newId = `${baseId}-${color}-${size}`;
+
+      let lines = prev.filter(i => i.id !== itemId);
+      const existing = lines.find(i => i.id === newId);
+      if (existing) {
+        lines = lines.map(i =>
+          i.id === newId ? { ...i, quantity: i.quantity + item.quantity } : i
+        );
+      } else {
+        lines.push({ ...item, id: newId, selectedColor: color, selectedSize: size });
+      }
+      return lines;
+    });
   };
 
   const clearCart = () => {
@@ -64,6 +96,7 @@ export const CartProvider = ({ children }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        updateItemVariant,
         clearCart,
         cartCount,
         cartTotal

@@ -2,6 +2,7 @@ import { X, Minus, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../hooks/useCart';
 import Button from '../ui/Button';
+import { formatPeso } from '../../utils/stock';
 
 const CartSidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
@@ -52,7 +53,10 @@ const CartSidebar = ({ isOpen, onClose }) => {
                     <h3 className="font-semibold text-charcoal truncate">
                       {item.name}
                     </h3>
-                    <p className="text-sm text-muted">₱{item.price.toFixed(2)}</p>
+                    <p className="text-xs text-muted capitalize">
+                      {item.selectedColor || item.colors?.[0] || 'Default'} · {item.selectedSize || 'Medium'}
+                    </p>
+                    <p className="text-sm text-muted mt-0.5">{formatPeso(item.price)}</p>
                     
                     <div className="flex items-center gap-2 mt-2">
                       <button
@@ -92,7 +96,7 @@ const CartSidebar = ({ isOpen, onClose }) => {
             <div className="flex items-center justify-between text-lg">
               <span className="font-semibold text-charcoal">Total:</span>
               <span className="font-bold text-primary text-2xl">
-                ₱{cartTotal.toFixed(2)}
+                {formatPeso(cartTotal)}
               </span>
             </div>
             <Button 
