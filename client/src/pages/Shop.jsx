@@ -1,12 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ProductGrid from '../components/product/ProductGrid'
 import { useShopData } from '../context/DataContext'
+import { useDebounce } from '../hooks/useDebounce'
 
 export default function Shop() {
   const { products } = useShopData()
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState(params.get('q') || '')
+  const debouncedQuery = useDebounce(query, 300)
+
+  // Keep the box in sync when a search arrives from the header bar (?q=…).
+  useEffect(() => {
+    setQuery(params.get('q') || '')
+  }, [params])
+
   const selectedCategory = params.get('category') || 'All'
   const filter = params.get('filter') || 'all'
 
@@ -17,7 +25,7 @@ export default function Shop() {
 
   const filtered = useMemo(() => {
     return products.filter((product) => {
-      const matchesQuery = product.name.toLowerCase().includes(query.toLowerCase())
+      const matchesQuery = product.name.toLowerCase().includes(debouncedQuery.toLowerCase())
       const matchesCategory =
         selectedCategory === 'All' ||
         product.category === selectedCategory ||
@@ -30,7 +38,7 @@ export default function Shop() {
         (filter === 'new' && product.newArrival)
       return matchesQuery && matchesCategory && matchesFilter
     })
-  }, [products, query, selectedCategory, filter])
+  }, [products, debouncedQuery, selectedCategory, filter])
 
   function setCategory(category) {
     const next = new URLSearchParams(params)

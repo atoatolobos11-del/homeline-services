@@ -1,23 +1,68 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X, Eye, EyeOff } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import Button from '../ui/Button';
 import CartSidebar from './CartSidebar';
+import { useShopData } from '../../context/DataContext';
+import { useDebounce } from '../../hooks/useDebounce';
+import { formatPeso } from '../../utils/stock';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [authMode, setAuthMode] = useState('register');
   const [showPassword, setShowPassword] = useState(false);
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '' });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const { cartCount } = useCart();
+  const { products = [] } = useShopData();
   const currentUser = JSON.parse(localStorage.getItem('homelineCurrentUser') || 'null');
+
+  // --- Debounced product search -------------------------------------------------
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocus, setSearchFocus] = useState(false);
+  const searchRef = useRef(null);
+  const debouncedQuery = useDebounce(searchQuery.trim(), 300);
+
+  const matchesSearch = (product, q) =>
+    product.name.toLowerCase().includes(q) ||
+    (product.category || '').toLowerCase().includes(q) ||
+    (product.sku || '').toLowerCase().includes(q);
+
+  const searchResults = useMemo(() => {
+    const q = debouncedQuery.toLowerCase();
+    if (!q) return [];
+    return products.filter((p) => matchesSearch(p, q)).slice(0, 6);
+  }, [products, debouncedQuery]);
+
+  const searchTotal = useMemo(() => {
+    const q = debouncedQuery.toLowerCase();
+    if (!q) return 0;
+    return products.filter((p) => matchesSearch(p, q)).length;
+  }, [products, debouncedQuery]);
+
+  const isSearching = searchQuery.trim() !== debouncedQuery;
+
+  // Close the dropdown when clicking anywhere outside the search box.
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchFocus(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const goToSearch = (q) => {
+    setSearchQuery('');
+    setSearchFocus(false);
+    navigate(`/shop?q=${encodeURIComponent(q)}`);
+  };
 
   const navLinks = [
     { name: 'Shop', href: '/catalog' },
@@ -143,14 +188,94 @@ const Header = () => {
 
           {/* Search Bar - Desktop */}
           <div className="hidden lg:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
+            <div className="relative w-full" ref={searchRef}>
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchFocus(true);
+                }}
+                onFocus={() => setSearchFocus(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && debouncedQuery) {
+                    goToSearch(debouncedQuery);
+                  }
+                  if (e.key === 'Escape') {
+                    setSearchFocus(false);
+                    setSearchQuery('');
+                  }
+                }}
                 placeholder="Search products..."
-                className="w-full pl-12 pr-4 py-2.5 rounded-full border border-beige bg-white focus:outline-none focus:border-primary transition-colors"
-                onFocus={() => setSearchOpen(true)}
+                aria-label="Search products"
+                className="w-full pl-12 pr-10 py-2.5 rounded-full border border-beige bg-white focus:outline-none focus:border-primary transition-colors"
               />
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted transition-colors hover:bg-beige"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Live results dropdown */}
+              {searchFocus && searchQuery.trim() && (
+                <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-2xl border border-beige bg-white shadow-xl">
+                  <div className="max-h-96 overflow-y-auto py-2">
+                    {isSearching ? (
+                      <p className="px-4 py-3 text-sm text-muted">Searching…</p>
+                    ) : searchResults.length > 0 ? (
+                      <>
+                        {searchResults.map((product) => (
+                          <button
+                            key={product.id || product.slug}
+                            type="button"
+                            onClick={() => {
+                              navigate(`/product/${product.slug}`);
+                              setSearchQuery('');
+                              setSearchFocus(false);
+                            }}
+                            className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-primary/5"
+                          >
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="h-11 w-11 shrink-0 rounded-lg object-cover"
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium text-charcoal">
+                                {product.name}
+                              </span>
+                              <span className="block text-xs text-muted">{product.category}</span>
+                            </span>
+                            <span className="shrink-0 text-sm font-semibold text-primary">
+                              {formatPeso(product.price)}
+                            </span>
+                          </button>
+                        ))}
+                        {searchTotal > searchResults.length && (
+                          <button
+                            type="button"
+                            onClick={() => goToSearch(debouncedQuery)}
+                            className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                          >
+                            See all {searchTotal} results
+                            <span aria-hidden>→</span>
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <p className="px-4 py-3 text-sm text-muted">
+                        No products match “{debouncedQuery}”.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -160,7 +285,7 @@ const Header = () => {
             <button 
               className="lg:hidden p-2 hover:bg-beige rounded-full transition-colors"
               aria-label="Search"
-              onClick={() => alert('Search functionality coming soon!')}
+              onClick={() => navigate('/shop')}
             >
               <Search className="w-5 h-5 text-charcoal" />
             </button>
