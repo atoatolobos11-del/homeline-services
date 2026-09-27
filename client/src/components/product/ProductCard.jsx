@@ -10,7 +10,7 @@ import { getStockStatus } from '../../utils/stock';
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
   const [showToast, setShowToast] = useState(false);
-  const stockStatus = getStockStatus(product.stock);
+  const stockStatus = getStockStatus(product.stock, product.reorderLevel);
 
   const getBadgeVariant = (badge) => {
     if (!badge) return 'default';

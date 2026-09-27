@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCart } from '../hooks/useCart';
+import { useShopData } from '../context/DataContext';
 import { ArrowLeft, CreditCard, Lock, CheckCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Toast from '../components/ui/Toast';
@@ -8,10 +9,12 @@ const apiBase = import.meta.env.VITE_API_URL || '/api';
 
 const Checkout = () => {
   const { cartItems, cartTotal, clearCart } = useCart();
+  const { refresh } = useShopData();
   const [currentStep, setCurrentStep] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('Order placed successfully!');
   const [toastType, setToastType] = useState('success');
+  const [orderNumber, setOrderNumber] = useState(null);
   const [orderComplete, setOrderComplete] = useState(false);
   const [shippingMethod, setShippingMethod] = useState('standard');
   const [promoCode, setPromoCode] = useState('');
@@ -124,15 +127,30 @@ const Checkout = () => {
     const totals = {};
     for (const item of cartItems) {
       const productId = item.baseProductId || item.id;
-      totals[productId] = (totals[productId] || 0) + (item.quantity || 1);
+      const existing = totals[productId];
+      if (existing) {
+        existing.quantity += item.quantity || 1;
+      } else {
+        totals[productId] = {
+          id: productId,
+          name: item.name,
+          price: Number(item.price) || 0,
+          quantity: item.quantity || 1,
+        };
+      }
     }
-    const items = Object.entries(totals).map(([id, quantity]) => ({ id, quantity }));
+    const items = Object.values(totals);
 
     try {
-      const res = await fetch(`${apiBase}/inventory/order`, {
+      const res = await fetch(`${apiBase}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({
+          customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+          customerEmail: formData.email || null,
+          total: totalAmount,
+          items,
+        }),
       });
 
       if (!res.ok) {
@@ -147,10 +165,17 @@ const Checkout = () => {
         return;
       }
 
+      const result = await res.json();
+      setOrderNumber(result.order_number || null);
       setToastType('success');
-      setToastMessage('Order placed successfully!');
+      setToastMessage(
+        result.order_number
+          ? `Order ${result.order_number} placed successfully!`
+          : 'Order placed successfully!'
+      );
       setOrderComplete(true);
       setShowToast(true);
+      refresh();
       setTimeout(() => {
         clearCart();
       }, 2000);
@@ -187,7 +212,13 @@ const Checkout = () => {
           <p className="text-sm text-muted mb-6">
             A confirmation email has been sent to {formData.email}
           </p>
-          
+
+          {orderNumber && (
+            <p className="mb-4 text-sm font-semibold tracking-wider text-primary">
+              ORDER NUMBER · {orderNumber}
+            </p>
+          )}
+
           <div className="bg-cream rounded-2xl p-6 mb-6">
             <p className="text-sm text-muted mb-2">Order Total</p>
             <p className="text-4xl font-bold text-primary">₱{totalAmount.toFixed(2)}</p>

@@ -15,7 +15,7 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const { products, loading } = useShopData();
   const product = products.find((item) => item.slug === slug);
-  const stockStatus = product ? getStockStatus(product.stock) : 'out';
+  const stockStatus = product ? getStockStatus(product.stock, product.reorderLevel) : 'out';
   const soldOut = stockStatus === 'out';
   const maxQuantity = product ? Math.max(1, product.stock) : 1;
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Natural');
