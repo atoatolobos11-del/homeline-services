@@ -137,7 +137,47 @@ values
   ('board-08', 'Walnut Serving Board', 'walnut-serving-board', 62.00, 'Natural Materials', 'Customer favorite',
    'A generously sized walnut board finished with food-safe oil, meant to be passed around the table for years.',
    'https://images.unsplash.com/photo-1543168256-418811576931?auto=format&fit=crop&w=900&q=80',
-   '["charcoal","cream"]', false, true, false, 9, 'HML-1008', 3, 30.00, 8)
+   '["charcoal","cream"]', false, true, false, 9, 'HML-1008', 3, 30.00, 8),
+
+  ('mug-set-09', 'Ceramic Tea Mug Set', 'ceramic-tea-mug-set', 34.50, 'Drinkware', 'New',
+   'A set of two stoneware mugs glazed in warm neutrals — slow mornings, refillable, and built to last.',
+   'https://images.pexels.com/photos/10622354/pexels-photo-10622354.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["cream","sage","charcoal"]', true, false, true, 10, 'HML-1009', 4, 15.00, 9),
+
+  ('basket-10', 'Handwoven Seagrass Basket', 'handwoven-seagrass-basket', 58.00, 'Storage', null,
+   'A sturdy, handwoven seagrass basket for blankets, produce, or toys — naturally textured and ethically made.',
+   'https://images.pexels.com/photos/10080934/pexels-photo-10080934.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["sand","cream"]', false, false, true, 6, 'HML-1010', 3, 26.00, 10),
+
+  ('skillet-11', 'Pre-Seasoned Cast Iron Skillet', 'cast-iron-skillet', 96.50, 'Cooking', 'Customer favorite',
+   'A 10-inch cast iron skillet that only gets better with use — naturally non-stick and heats evenly for years.',
+   'https://images.pexels.com/photos/12974474/pexels-photo-12974474.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["charcoal"]', true, true, false, 8, 'HML-1011', 3, 48.00, 11),
+
+  ('runner-12', 'Linen Table Runner', 'linen-table-runner', 42.00, 'Kitchen Essentials', 'Promotion',
+   'European flax linen table runner in muted sage — softens any table and softens more with every wash.',
+   'https://images.pexels.com/photos/13748996/pexels-photo-13748996.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["sage","cream"]', false, false, true, 5, 'HML-1012', 4, 19.00, 12),
+
+  ('utensils-13', 'Bamboo Utensil Set', 'bamboo-utensil-set', 47.30, 'Natural Materials', null,
+   'A nine-piece bamboo cooking utensil set — spatulas, ladle, tongs, and spoons, oiled and ready for the kitchen.',
+   'https://images.pexels.com/photos/11001668/pexels-photo-11001668.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["sand","charcoal"]', false, false, false, 7, 'HML-1013', 3, 22.00, 13),
+
+  ('pantry-14', 'Glass Pantry Jars', 'glass-pantry-jars', 68.60, 'Storage', 'New',
+   'Airtight glass pantry jars with bamboo lids for coffee, grains, and pasta — zero-waste bulk shopping made easy.',
+   'https://images.pexels.com/photos/10252345/pexels-photo-10252345.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["cream"]', false, true, true, 9, 'HML-1014', 4, 32.00, 14),
+
+  ('trivets-15', 'Cork Trivets (Set of 4)', 'cork-trivets-set-of-4', 22.90, 'Kitchen Essentials', null,
+   'Four naturally insulating cork trivets that protect counters from hot pots and slow cookers.',
+   'https://images.pexels.com/photos/11137699/pexels-photo-11137699.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["sand","charcoal"]', false, false, false, 14, 'HML-1015', 3, 9.50, 15),
+
+  ('tablecloth-16', 'Organic Cotton Tablecloth', 'organic-cotton-tablecloth', 55.00, 'Natural Materials', 'Customer favorite',
+   'GOTS-certified organic cotton tablecloth in creamy off-white — relaxed wrinkles, honest material, everyday beauty.',
+   'https://images.pexels.com/photos/10216540/pexels-photo-10216540.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["cream","sage"]', false, false, false, 3, 'HML-1016', 5, 27.00, 16)
 on conflict (id) do update set
   image         = excluded.image,
   stock         = excluded.stock,

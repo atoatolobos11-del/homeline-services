@@ -4,6 +4,19 @@ import { useShopData } from '../../context/DataContext';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
+// Curated, verified sample photos so a product never ships with a broken image.
+const SAMPLE_PHOTOS = [
+  { label: 'Drinkware', url: 'https://images.pexels.com/photos/7879895/pexels-photo-7879895.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Mugs', url: 'https://images.pexels.com/photos/10622354/pexels-photo-10622354.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Basket', url: 'https://images.pexels.com/photos/10080934/pexels-photo-10080934.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Skillet', url: 'https://images.pexels.com/photos/12974474/pexels-photo-12974474.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Linen', url: 'https://images.pexels.com/photos/13748996/pexels-photo-13748996.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Bamboo', url: 'https://images.pexels.com/photos/11001668/pexels-photo-11001668.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Pantry jars', url: 'https://images.pexels.com/photos/10252345/pexels-photo-10252345.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Cork', url: 'https://images.pexels.com/photos/11137699/pexels-photo-11137699.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Tablecloth', url: 'https://images.pexels.com/photos/10216540/pexels-photo-10216540.jpeg?auto=compress&cs=tinysrgb&w=900' },
+];
+
 const ProductFormModal = ({ product, onClose, onSaved }) => {
   const { categories } = useShopData();
   const isEdit = Boolean(product);
@@ -206,6 +219,29 @@ const ProductFormModal = ({ product, onClose, onSaved }) => {
                   placeholder="https://images.pexels.com/... "
                   className="w-full rounded-xl border border-beige px-4 py-3 pl-11 focus:border-primary focus:outline-none"
                 />
+              </div>
+              <div className="mt-3">
+                <p className="mb-2 text-xs font-semibold text-muted">Or pick a sample photo:</p>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {SAMPLE_PHOTOS.map((photo) => (
+                    <button
+                      key={photo.url}
+                      type="button"
+                      onClick={() => set('image', photo.url)}
+                      title={photo.label}
+                      className={`flex shrink-0 flex-col items-center gap-1 rounded-xl border p-1 transition hover:border-primary ${
+                        form.image === photo.url ? 'border-primary ring-2 ring-primary/30' : 'border-beige'
+                      }`}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.label}
+                        className="h-14 w-14 rounded-lg object-cover"
+                      />
+                      <span className="text-[10px] font-medium text-muted">{photo.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
