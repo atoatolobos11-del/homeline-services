@@ -28,14 +28,14 @@ const Checkout = () => {
 
   const shippingOptions = {
     standard: { label: 'Standard', price: 0, eta: '3-5 business days' },
-    express: { label: 'Express', price: 12, eta: '2-3 business days' },
-    priority: { label: 'Priority', price: 24, eta: '1-2 business days' }
+    express: { label: 'Express', price: 150, eta: '2-3 business days' },
+    priority: { label: 'Priority', price: 250, eta: '1-2 business days' }
   };
 
   const giftWrapOptions = {
     none: { label: 'No gift wrap', price: 0 },
-    classic: { label: 'Classic wrap', price: 12 },
-    premium: { label: 'Premium wrap', price: 18 }
+    classic: { label: 'Classic wrap', price: 50 },
+    premium: { label: 'Premium wrap', price: 100 }
   };
 
   const [formData, setFormData] = useState({
