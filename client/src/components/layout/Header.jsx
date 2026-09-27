@@ -161,7 +161,7 @@ const Header = () => {
           <div className="flex-shrink-0 mr-8">
             <a href="/" className="flex items-center gap-2.5 group">
               <img
-                src="/logo-mark.svg"
+                src="/logo-mark-circle.svg"
                 alt="Homeline logo"
                 width={36}
                 height={36}

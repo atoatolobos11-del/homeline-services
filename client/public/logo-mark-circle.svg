@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Homeline logo">
+  <defs>
+    <radialGradient id="hl-bgg" cx="0.35" cy="0.3" r="0.95">
+      <stop offset="0" stop-color="#1a5244"/>
+      <stop offset="1" stop-color="#0c2f29"/>
+    </radialGradient>
+  </defs>
+  <!-- Circle badge -->
+  <circle cx="32" cy="32" r="32" fill="url(#hl-bgg)"/>
+  <circle cx="32" cy="32" r="30.6" fill="none" stroke="#f6efe6" stroke-opacity="0.22" stroke-width="1"/>
+  <!-- House -->
+  <path d="M15 35 L32 20 L49 35 V49 H15 Z" fill="none" stroke="#f6efe6" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- Leaf (nature / eco) -->
+  <path d="M32 26.5 C25.6 31 24.6 37.2 27.7 42.1 C29.7 45.1 32 46.2 32 46.2 C32 46.2 34.3 45.1 36.3 42.1 C39.4 37.2 38.4 31 32 26.5 Z" fill="#7fa184"/>
+  <path d="M32 27.5 V44.8" stroke="#f6efe6" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
