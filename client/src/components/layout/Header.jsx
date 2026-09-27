@@ -159,8 +159,15 @@ const Header = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex-shrink-0 mr-8">
-            <a href="/" className="text-2xl font-serif font-bold text-primary">
-              Homeline
+            <a href="/" className="flex items-center gap-2.5 group">
+              <img
+                src="/logo-mark.svg"
+                alt="Homeline logo"
+                width={36}
+                height={36}
+                className="h-9 w-9 transition-transform duration-300 group-hover:scale-105"
+              />
+              <span className="text-2xl font-serif font-bold text-primary">Homeline</span>
             </a>
           </div>
 
