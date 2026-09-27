@@ -15,6 +15,13 @@ const SAMPLE_PHOTOS = [
   { label: 'Pantry jars', url: 'https://images.pexels.com/photos/10252345/pexels-photo-10252345.jpeg?auto=compress&cs=tinysrgb&w=900' },
   { label: 'Cork', url: 'https://images.pexels.com/photos/11137699/pexels-photo-11137699.jpeg?auto=compress&cs=tinysrgb&w=900' },
   { label: 'Tablecloth', url: 'https://images.pexels.com/photos/10216540/pexels-photo-10216540.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Bedsheet', url: 'https://images.pexels.com/photos/10061382/pexels-photo-10061382.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Pillows', url: 'https://images.pexels.com/photos/10060374/pexels-photo-10060374.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Duvet', url: 'https://images.pexels.com/photos/10061391/pexels-photo-10061391.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Sofa', url: 'https://images.pexels.com/photos/11295890/pexels-photo-11295890.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Coffee table', url: 'https://images.pexels.com/photos/10108747/pexels-photo-10108747.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Pan', url: 'https://images.pexels.com/photos/10432707/pexels-photo-10432707.jpeg?auto=compress&cs=tinysrgb&w=900' },
+  { label: 'Throw blanket', url: 'https://images.pexels.com/photos/10373509/pexels-photo-10373509.jpeg?auto=compress&cs=tinysrgb&w=900' },
 ];
 
 const ProductFormModal = ({ product, onClose, onSaved }) => {

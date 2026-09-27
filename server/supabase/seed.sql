@@ -177,7 +177,47 @@ values
   ('tablecloth-16', 'Organic Cotton Tablecloth', 'organic-cotton-tablecloth', 799.00, 'Natural Materials', 'Customer favorite',
    'GOTS-certified organic cotton tablecloth in creamy off-white — relaxed wrinkles, honest material, everyday beauty.',
    'https://images.pexels.com/photos/10216540/pexels-photo-10216540.jpeg?auto=compress&cs=tinysrgb&w=900',
-   '["cream","sage"]', false, false, false, 3, 'HML-1016', 5, 385.00, 16)
+   '["cream","sage"]', false, false, false, 3, 'HML-1016', 5, 385.00, 16),
+
+  ('bedsheet-17', 'Organic Cotton Bedsheet Set', 'organic-cotton-bedsheet-set', 1299.00, 'Bedding', 'New',
+   'Breathable organic cotton bedsheet set (fitted, flat, and two pillowcases) that feels cool on humid nights and softens with every wash.',
+   'https://images.pexels.com/photos/10061382/pexels-photo-10061382.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["cream","sage"]', true, false, true, 8, 'HML-1017', 3, 620.00, 17),
+
+  ('pillows-18', 'Bamboo Fiber Pillows (Set of 2)', 'bamboo-fiber-pillows-set-of-2', 899.00, 'Bedding', null,
+   'Two plush bamboo-fiber pillows that bounce back all night — naturally breathable, hypoallergenic, and machine washable.',
+   'https://images.pexels.com/photos/10060374/pexels-photo-10060374.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["cream","charcoal"]', false, false, true, 12, 'HML-1018', 4, 430.00, 18),
+
+  ('duvet-19', 'Linen Duvet Cover', 'linen-duvet-cover', 1799.00, 'Bedding', 'Customer favorite',
+   'European flax linen duvet cover with hidden button closure — relaxed lived-in texture in a warm oat tone.',
+   'https://images.pexels.com/photos/10061391/pexels-photo-10061391.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["sage","cream"]', true, true, false, 6, 'HML-1019', 3, 860.00, 19),
+
+  ('salaset-20', 'Cozy Sala Set', 'cozy-sala-set', 12999.00, 'Living Room', 'New',
+   'A complete sala set for the living room — 3-seater sofa, two accent chairs, and a center coffee table in warm neutral tones.',
+   'https://images.pexels.com/photos/11295890/pexels-photo-11295890.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["sand","charcoal"]', true, false, true, 2, 'HML-1020', 1, 6200.00, 20),
+
+  ('coffeetable-21', 'Rattan Coffee Table', 'rattan-coffee-table', 3499.00, 'Living Room', null,
+   'Handwoven rattan coffee table with a tempered glass top — lightweight enough to move, sturdy enough for everyday.',
+   'https://images.pexels.com/photos/10108747/pexels-photo-10108747.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["sand","charcoal"]', false, false, false, 4, 'HML-1021', 2, 1680.00, 21),
+
+  ('pan-22', 'Ceramic Non-Stick Frying Pan', 'ceramic-non-stick-frying-pan', 899.00, 'Cooking', 'Promotion',
+   'A ceramic-coated frying pan with a comfortable stay-cool handle — free of PTFE and PFOA, ready for eggs and morning pancakes.',
+   'https://images.pexels.com/photos/10432707/pexels-photo-10432707.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["charcoal"]', false, false, false, 14, 'HML-1022', 4, 430.00, 22),
+
+  ('steel-pan-23', 'Stainless Steel Fry Pan', 'stainless-steel-fry-pan', 799.00, 'Cooking', null,
+   'A durable stainless steel fry pan that heats evenly and cleans easily — the everyday workhorse for sautés and sears.',
+   'https://images.pexels.com/photos/12673631/pexels-photo-12673631.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["charcoal"]', false, false, false, 10, 'HML-1023', 3, 385.00, 23),
+
+  ('throwblanket-24', 'Knitted Throw Blanket', 'knitted-throw-blanket', 1099.00, 'Bedding', 'Customer favorite',
+   'A chunky hand-knitted throw blanket in soft cream — drapes beautifully on the sofa and keeps movie nights cozy.',
+   'https://images.pexels.com/photos/10373509/pexels-photo-10373509.jpeg?auto=compress&cs=tinysrgb&w=900',
+   '["cream","olive"]', true, true, false, 7, 'HML-1024', 3, 525.00, 24)
 on conflict (id) do update set
   image         = excluded.image,
   price         = excluded.price,
@@ -199,7 +239,11 @@ values
   ('storage',   'Storage',           'Organize your kitchen with eco-friendly containers and organizers', 'storage',
    'https://images.unsplash.com/photo-1556912173-46c336c7fd55?auto=format&fit=crop&w=600&q=80', 4),
   ('essentials','Kitchen Essentials','Everything you need for a sustainable, well-equipped kitchen', 'kitchen-essentials',
-   'https://images.pexels.com/photos/9475718/pexels-photo-9475718.jpeg?auto=compress&cs=tinysrgb&w=600', 5)
+   'https://images.pexels.com/photos/9475718/pexels-photo-9475718.jpeg?auto=compress&cs=tinysrgb&w=600', 5),
+  ('bedding',  'Bedding',           'Organic cotton sheets, pillows, and duvets for restful, healthy sleep', 'bedding',
+   'https://images.pexels.com/photos/10061382/pexels-photo-10061382.jpeg?auto=compress&cs=tinysrgb&w=600', 6),
+  ('living',   'Living Room',       'Sala sets, coffee tables, and cozy throws for your living space', 'living-room',
+   'https://images.pexels.com/photos/11295890/pexels-photo-11295890.jpeg?auto=compress&cs=tinysrgb&w=600', 7)
 on conflict (id) do update set
   name        = excluded.name,
   description = excluded.description,
