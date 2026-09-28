@@ -1,33 +1,38 @@
 # =============================================================================
 # Homeline — Render Blueprint
 #
-# Deploys BOTH halves of the app as one stack:
-#   homeline-api    → Express REST API  (web service, Node runtime)
-#   homeline-client → Vite React build   (static site, CDN)
+# Single-service deployment: one Node process serves BOTH the REST API and the
+# built React storefront, so everything lives on one origin and one URL.
+#
+#   https://homeline.onrender.com/          → React app (SPA)
+#   https://homeline.onrender.com/api/...   → JSON API
+#
+# Why one service: the client calls the API with a relative "/api" path, so
+# there is no VITE_API_URL to configure, no cross-origin request, and no way for
+# the storefront to load against a dead API host.
 #
 # Usage: dashboard.render.com -> New -> Blueprint -> select this repo
-#        Render will prompt for the two Supabase values marked `sync: false`.
-#        Then push to the linked branch and the client rebuilds automatically.
+#        Render prompts for the two Supabase values marked `sync: false`.
 #
 # Docs: https://render.com/docs/blueprint-spec
 # =============================================================================
 
 services:
-  # ---------------------------------------------------------------------------
-  # API — Express + Supabase
-  # ---------------------------------------------------------------------------
   - type: web
-    name: homeline-api
+    name: homeline
     runtime: node
     plan: free
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm start
+    # Repo root (not server/) because the build needs client/ as well.
+    rootDir: .
+    # There is no root package.json — each half installs its own dependencies.
+    buildCommand: cd server && npm install && cd ../client && npm install && npm run build
+    startCommand: cd server && npm start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
-    # Monorepo: only rebuild the API when its own files change.
+    # The API and the client ship together, so a build needs both trees.
     buildFilter:
       paths:
+        - client/**
         - server/**
         - render.yaml
     envVars:
@@ -35,47 +40,11 @@ services:
         value: production
       # Server binds to process.env.PORT, which Render injects automatically.
       # Do NOT hardcode PORT here — Render assigns it.
+      #
+      # VITE_API_URL is deliberately NOT set: client/src/context/DataContext.jsx
+      # falls back to the relative path "/api", which is correct on a single
+      # origin. Setting it would only re-introduce the chance of a bad host.
       - key: SUPABASE_URL
         sync: false # https://<project-ref>.supabase.co
       - key: SUPABASE_ANON_KEY
         sync: false # publishable / anon key — safe to expose, RLS does the work
-
-  # ---------------------------------------------------------------------------
-  # Client — Vite static site
-  # ---------------------------------------------------------------------------
-  - type: web
-    name: homeline-client
-    runtime: static
-    # No rootDir: the build command cds into client/ and the publish path is
-    # written relative to the REPO root, which is unambiguous per the spec.
-    # (If you would rather set rootDir: client, use staticPublishPath: ./dist
-    #  and buildCommand: npm install && npm run build instead.)
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: ./client/dist
-    autoDeployTrigger: commit
-    buildFilter:
-      paths:
-        - client/**
-        - render.yaml
-    # React Router uses the History API, so any unknown path must fall back to
-    # index.html instead of 404ing. Without this, refreshing /shop or /cart
-    # directly returns a 404 and deep links break.
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    # Hashed Vite assets are immutable; index.html must never be cached or
-    # clients keep loading a stale bundle after a deploy.
-    headers:
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-      - path: /index.html
-        name: Cache-Control
-        value: no-cache
-    envVars:
-      # Vite inlines import.meta.env at BUILD time, so this must be present
-      # when the site builds. The hostname is derived from the service name
-      # above — if you rename homeline-api, update this to match.
-      - key: VITE_API_URL
-        value: https://homeline-api.onrender.com/api

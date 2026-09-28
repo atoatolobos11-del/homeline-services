@@ -113,10 +113,15 @@ corresponding order existing.
 
 ### Proxy vs. direct API calls
 
-The client reads `import.meta.env.VITE_API_URL || '/api'`. With no `.env` present, requests
-go to the relative path `/api` and the Vite dev server proxies them to
-`http://localhost:5000` (`client/vite.config.js`). In production you **must** set
-`VITE_API_URL` to the absolute backend URL — see [§10](#10-deployment).
+The client reads `import.meta.env.VITE_API_URL || '/api'`. With no `.env` present, requests go
+to the relative path `/api`, and the Vite dev server proxies them to
+`http://localhost:5000` (`client/vite.config.js`).
+
+In production the fallback is correct **when the client and API share an origin** — which is
+the single-service Render deploy, where Express serves the built client itself. It is wrong
+when they are hosted separately (e.g. client on Vercel), because `/api` then resolves to the
+CDN and returns `index.html` instead of JSON; there you must set `VITE_API_URL` to the
+absolute backend URL. See [§10](#10-deployment).
 
 ---
 
@@ -190,6 +195,20 @@ npm run dev               # http://localhost:3000
 ```
 
 No `.env` is required for local work — the dev server proxies `/api` to port 5000.
+
+### Reproducing the production setup locally
+
+To run the app the same way Render does — one process, one origin — build the client and
+start the server:
+
+```bash
+cd client && npm run build && cd ..
+cd server && npm start        # http://localhost:5000 serves both / and /api
+```
+
+`server.js` checks for `client/dist/index.html` on boot. If it is missing it logs
+`Client build not found — running API only` and skips the static handlers, so running the
+API on its own is still supported and never crashes.
 
 ### Database setup
 
@@ -299,7 +318,7 @@ If Supabase is unconfigured, every route except `/` and `/api/health` returns `5
 
 | Method | Path | Notes |
 | ------ | ---- | ----- |
-| `GET` | `/` | Outside the `/api` surface: returns service status, database state, and the endpoint list, so a bare visit to the deployed domain is not a dead end |
+| `GET` | `/api` | Service banner: status, database state, and the endpoint list. `/` is not part of the API — in a single-service deploy it serves the React app |
 | `GET` | `/api/health` | `{"ok":true,"database":"supabase"\|"unconfigured"}` |
 
 ### Products
@@ -511,7 +530,73 @@ real accounts or customer data, and real credentials must never be entered into 
 
 ## 10. Deployment
 
-### Frontend — Vercel
+### Everything — Render Blueprint (the supported path)
+
+`render.yaml` deploys the **entire stack as a single service**. Dashboard → **New →
+Blueprint** → select the repo → **Apply**. Render prompts for the two values marked
+`sync: false`.
+
+One Node process serves both the API and the built React app:
+
+```
+https://<service>.onrender.com/          → React storefront (SPA)
+https://<service>.onrender.com/api/...   → JSON API
+https://<service>.onrender.com/api       → service banner + endpoint list
+```
+
+```yaml
+- key: NODE_ENV
+  value: production
+- key: SUPABASE_URL
+  sync: false
+- key: SUPABASE_ANON_KEY
+  sync: false
+```
+
+`rootDir` is the repo root, not `server/`, because the build needs `client/` as well. There
+is no root `package.json`, so the build command installs each half separately:
+
+```
+cd server && npm install && cd ../client && npm install && npm run build
+```
+
+Details that matter:
+
+- **`VITE_API_URL` is deliberately not set.** The client already falls back to the relative
+  path `/api` (`client/src/context/DataContext.jsx:6`), which is correct on a single origin.
+  Hardcoding a host would reintroduce the silent "no products" failure described above.
+- **The SPA catch-all is registered last**, after every `/api` route. Registered earlier it
+  would swallow the API and serve `index.html` for JSON requests. It also explicitly
+  `next()`s anything under `/api`, so a bad API path returns a JSON 404, not HTML.
+- **Cache headers.** `/assets/*` is `immutable` for a year (Vite hashes filenames);
+  `index.html` is explicitly `no-cache` because it points at hashed filenames that are
+  replaced on every deploy — a cached copy would render a blank page.
+- **`PORT` is never hardcoded** — Render assigns it and `server.js` reads
+  `process.env.PORT`.
+- **The client is optional at runtime.** `server.js` checks for `client/dist/index.html` on
+  boot; if it is absent it logs that it is running API-only instead of crashing. So
+  `npm start` in `server/` works fine for backend-only work.
+- **`buildFilter`** covers `client/**`, `server/**` and `render.yaml`, so a docs-only commit
+  does not trigger a rebuild.
+
+**Free-plan caveat:** the service sleeps after 15 minutes idle and takes roughly 30–60
+seconds to wake. The first request after a pause will hang before it succeeds — this is
+normal, not a fault.
+
+**Verifying a deploy:** `/api/health` should return `{"ok":true,"database":"supabase"}`, `/`
+should return HTML, and `/api/products` should return JSON. If `/` returns JSON, the service
+is running an older commit.
+
+### Two services — the alternative
+
+The stack also works split across two Render services: the API as a `web`/`node` service and
+the client as a `web`/`static` site, with the static site's `routes` rewriting `/*` to
+`/index.html` and `VITE_API_URL` pointing at the API host. That is the better choice if you
+specifically want to demonstrate static/CDN hosting, or if the API needs to scale
+independently. The costs are real, though: two URLs, a cross-origin request, and one
+extra environment variable whose absence fails silently.
+
+### Vercel
 
 `client/vercel.json` rewrites all paths to `index.html` for client-side routing.
 
@@ -527,62 +612,11 @@ Vercel domain, the rewrite serves `index.html` instead of JSON, and the storefro
 **with no products and no visible error**. This is the single most likely deployment
 failure.
 
-### Both halves — Render Blueprint
-
-`render.yaml` deploys the **entire stack** as one Blueprint. Dashboard → **New →
-Blueprint** → select the repo → **Apply**. Render prompts for the two values marked
-`sync: false`, then builds both services:
-
-| Service | Type | URL |
-| ------- | ---- | --- |
-| `homeline-api` | `web` / `node`, `plan: free` | `https://homeline-api.onrender.com` |
-| `homeline-client` | `web` / `static` | `https://homeline-client.onrender.com` |
-
-```yaml
-# supabase values, prompted for on creation
-- key: SUPABASE_URL
-  sync: false
-- key: SUPABASE_ANON_KEY
-  sync: false
-# client build-time value, derived from the service name
-- key: VITE_API_URL
-  value: https://homeline-api.onrender.com/api
-```
-
-Details that matter:
-
-- **SPA fallback.** `routes` rewrites `/*` → `/index.html`. The app uses `BrowserRouter`,
-  and a static site has no fallback on its own, so without this a direct visit or refresh
-  to `/shop` or `/cart` returns a 404.
-- **Cache headers.** `/assets/*` is `immutable` (Vite hashes filenames); `/index.html` is
-  `no-cache`, so clients do not keep loading a stale bundle after a deploy.
-- **`PORT` is never hardcoded** — Render assigns it and `server.js` reads
-  `process.env.PORT`.
-- **`VITE_API_URL` is inlined at build time**, so it must be present when the site builds.
-  It is hardcoded to the hostname derived from the service name: **rename `homeline-api`
-  and you must update this value**, or the site builds pointing at a dead host and renders
-  with no products, silently.
-- **`buildFilter`** keeps the monorepo sane — editing `client/` does not rebuild the API,
-  and vice versa.
-- The static site sets no `rootDir`; the build command `cd`s into `client/` and
-  `staticPublishPath: ./client/dist` is relative to the repo root, which is unambiguous.
-
-**Free-plan caveat:** the API sleeps after 15 minutes idle and takes roughly 30–60 seconds
-to wake. The first request after a pause will hang before it succeeds — this is normal,
-not a fault. Static sites are free and never sleep.
-
-**Verifying a deploy:** `https://homeline-api.onrender.com/api/health` should return
-`{"ok":true,"database":"supabase"}`, and `https://homeline-api.onrender.com/` returns
-service status plus the endpoint list. If the root still shows `Cannot GET /`, the API is
-running an older commit — push and let auto-deploy catch up.
-
-Also supported: Vercel (frontend, see above), Railway, Heroku, DigitalOcean App Platform,
-AWS Elastic Beanstalk.
+Also supported: Railway, Heroku, DigitalOcean App Platform, AWS Elastic Beanstalk.
 
 ### Production checklist
 
-- [ ] `VITE_API_URL` set on the frontend host
-- [ ] `SUPABASE_URL` + `SUPABASE_ANON_KEY` set on the backend host
+- [ ] `SUPABASE_URL` + `SUPABASE_ANON_KEY` set on the service
 - [ ] `/api/health` returns `"database":"supabase"`
 - [ ] RLS write policies on `products` and `promo_codes` tightened to an authenticated role
 - [ ] CORS restricted to the real frontend origin (currently `cors()` allows all)
@@ -618,9 +652,13 @@ Ordered by how likely you are to hit them.
 The `server` service omits the Supabase variables, so every data route returns `503`. Add
 `SUPABASE_URL` and `SUPABASE_ANON_KEY` to its `environment` block.
 
-### 2. Missing `VITE_API_URL` breaks deployed storefronts 🔴
+### 2. Missing `VITE_API_URL` breaks storefronts hosted separately from the API 🔴
 
-Fails silently — the app loads but shows zero products. Set it on the host.
+Fails silently — the app loads but shows zero products, because the `/api` request hits the
+host's own SPA rewrite and gets `index.html` back instead of JSON. **Not a risk on the
+single-service Render deploy** (client and API share an origin, so the `/api` fallback is
+correct). It *is* a risk on Vercel or any split deployment, where the variable is required.
+`VITE_API_URL` is read once at build time by `DataContext.jsx:6`.
 
 ### 3. Product and promo writes are world-writable 🔴
 

@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
@@ -7,6 +10,13 @@ dotenv.config()
 
 const app = express()
 const port = process.env.PORT || 5000
+
+const serverDir = path.dirname(fileURLToPath(import.meta.url))
+// The built React app. In production both are served from one process; when
+// running the API on its own (npm run dev) this directory simply won't exist
+// and the static handlers are skipped.
+const clientDist = path.join(serverDir, '..', 'client', 'dist')
+const clientDistExists = fs.existsSync(path.join(clientDist, 'index.html'))
 
 // Supabase client — the single source of truth.
 const supabaseUrl = process.env.SUPABASE_URL
@@ -57,9 +67,9 @@ const requireSupabase = (_req, res) => {
   return supabase
 }
 
-// Every route is mounted under /api, so visiting the bare domain (which is
-// what you get after deploying) would otherwise return "Cannot GET /".
-app.get('/', (_req, res) => {
+// Every data route is mounted under /api. This banner lives at /api rather than
+// at / because in a single-service deploy the root must serve the React app.
+app.get('/api', (_req, res) => {
   res.json({
     service: 'Homeline API',
     status: supabase ? 'ok' : 'degraded',
@@ -700,6 +710,56 @@ app.post('/api/contact', async (req, res) => {
   res.status(201).json({ ok: true })
 })
 
+// ---------- Static client ----------
+// Everything below MUST stay after all /api routes: a catch-all registered
+// earlier would swallow them. This is what lets one Render service serve both
+// the API and the built React app.
+
+if (clientDistExists) {
+  // Hashed Vite assets never change under the same name — cache them hard.
+  app.use(
+    '/assets',
+    express.static(path.join(clientDist, 'assets'), {
+      maxAge: '1y',
+      immutable: true,
+    }),
+  )
+
+  // index.html must never be cached. It references hashed asset filenames, and
+  // those files are replaced on the next deploy — so a cached copy would point
+  // at missing assets and render a blank page.
+  const sendIndex = (_req, res) => {
+    res.set('Cache-Control', 'no-cache')
+    res.sendFile(path.join(clientDist, 'index.html'))
+  }
+  app.get('/index.html', sendIndex)
+
+  app.use(express.static(clientDist, { index: false, maxAge: '1h' }))
+
+  // React Router uses the History API, so a direct visit or refresh to /shop or
+  // /cart must return index.html rather than a 404.
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next()
+    sendIndex(req, res)
+  })
+}
+
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: `No API route matches that path. See GET /api for the endpoint list.` })
+})
+
+app.use((_req, res) => {
+  if (clientDistExists) {
+    return res.status(404).sendFile(path.join(clientDist, 'index.html'))
+  }
+  res.status(404).json({ error: 'Not found' })
+})
+
 app.listen(port, () => {
-  console.log(`Homeline API listening on ${port} (database: ${supabase ? 'supabase' : 'unconfigured'})`)
+  console.log(`Homeline listening on ${port} (database: ${supabase ? 'supabase' : 'unconfigured'})`)
+  console.log(
+    clientDistExists
+      ? `Serving client from ${clientDist} — storefront and API on one origin`
+      : 'Client build not found — running API only (run: cd client && npm run build)',
+  )
 })
