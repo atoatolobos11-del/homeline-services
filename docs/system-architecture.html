@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homeline — System Architecture</title>
+<style>
+  :root {
+    --primary:#1a4d2e; --primary-dark:#0f3320; --cream:#f5f1e8; --beige:#e8e0d0;
+    --charcoal:#2c2c2c; --muted:#6b7669; --line:#ddd6c6; --white:#fff;
+    --amber:#b45309; --amber-bg:#fef3c7; --red:#b91c1c; --red-bg:#fee2e2;
+    --blue:#1d4ed8; --blue-bg:#dbeafe; --purple:#7c3aed; --purple-bg:#ede9fe;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Segoe UI', Arial, sans-serif; background:var(--cream); color:var(--charcoal); }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 20px 64px; }
+
+  header { text-align:center; padding:8px 0 24px; }
+  header h1 { margin:0; font-size:30px; color:var(--primary); }
+  header p { margin:6px 0 0; color:var(--muted); font-size:14px; }
+  .badge { display:inline-block; margin-top:12px; padding:5px 14px; border-radius:999px; background:var(--primary); color:#fff; font-size:12px; font-weight:600; }
+
+  .flow { display:flex; align-items:stretch; justify-content:center; gap:10px; flex-wrap:nowrap; }
+  .card { flex:1 1 0; min-width:0; border-radius:18px; padding:18px 16px; border:1px solid var(--line); background:var(--white); box-shadow:0 4px 14px rgba(0,0,0,.06); }
+  .card h2 { margin:0 0 10px; font-size:16px; color:#fff; border-radius:12px; padding:8px 12px; text-align:center; }
+  .card.browser h2 { background:#3b82f6; }
+  .card.api h2 { background:#7c3aed; }
+  .card.db h2 { background:var(--primary); }
+  .card ul { margin:6px 0 0; padding-left:18px; font-size:12.5px; line-height:1.65; color:var(--charcoal); }
+  .card li { margin:2px 0; }
+  .card .note { margin-top:10px; padding:8px 10px; border-radius:10px; font-size:11.5px; line-height:1.5; }
+  .arrow { display:flex; flex-direction:column; align-items:center; justify-content:center; width:54px; flex-shrink:0; }
+  .arrow .a { font-size:26px; color:var(--muted); line-height:1; }
+  .arrow .l { font-size:10px; color:var(--muted); text-align:center; margin-top:4px; line-height:1.3; }
+
+  section.block { margin-top:40px; }
+  section.block h3 { font-size:18px; color:var(--primary); margin:0 0 12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; }
+  .mini { border-radius:16px; padding:14px; border:1px solid var(--line); background:var(--white); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+  .mini h4 { margin:0 0 6px; font-size:14px; color:var(--charcoal); }
+  .mini p { margin:0; font-size:12.5px; line-height:1.55; color:var(--muted); }
+  .mini code, .flow code { background:var(--cream); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:11.5px; }
+
+  .flows { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; margin-top:8px; }
+  .fstep { display:flex; gap:12px; align-items:flex-start; background:var(--white); border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+  .fstep .no { flex-shrink:0; width:28px; height:28px; border-radius:50%; background:var(--primary); color:#fff; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; margin-top:2px; }
+  .fstep b { font-size:13px; color:var(--charcoal); }
+  .fstep p { margin:2px 0 0; font-size:12px; color:var(--muted); line-height:1.5; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .chip { border-radius:999px; padding:6px 12px; font-size:11.5px; font-weight:600; border:1px solid var(--line); }
+  .c-blue { background:var(--blue-bg); color:var(--blue); }
+  .c-purple { background:var(--purple-bg); color:var(--purple); }
+  .c-green { background:#d1fae5; color:var(--primary-dark); }
+  .c-amber { background:var(--amber-bg); color:var(--amber); }
+  .c-red { background:var(--red-bg); color:var(--red); }
+
+  .note.violet { background:var(--purple-bg); color:var(--purple); }
+  .note.green { background:#d1fae5; color:var(--primary-dark); }
+  .note.amber { background:var(--amber-bg); color:var(--amber); }
+  .note.blue { background:var(--blue-bg); color:var(--blue); }
+
+  .foot { margin-top:40px; text-align:center; color:var(--muted); font-size:12px; border-top:1px solid var(--line); padding-top:18px; }
+  @media (max-width:760px){ .flow { flex-direction:column; } .arrow { flex-direction:row; width:auto; padding:2px 0; } .arrow .l { margin:0 0 0 8px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🏡 Homeline — System Architecture</h1>
+    <p>How your online store works: every system, every connection · September 2026</p>
+    <span class="badge">React + Node/Express + Supabase (Free) on Vercel + Render</span>
+  </header>
+
+  <!-- Main flow -->
+  <div class="flow">
+    <div class="card browser">
+      <h2>1 · Customer's Browser</h2>
+      <div class="note blue">FRONTEND — React + Vite + Tailwind CSS<br>Hosted on <b>Vercel</b></div>
+      <ul>
+        <li>Storefront: Home · Shop · Product pages · Cart · Checkout</li>
+        <li>My Profile + My Orders · Track / Cancel Order</li>
+        <li>Inventory dashboard: products, stock, sales charts, customers, promos</li>
+        <li>Customer pages: About, Sustainability, Journal, Careers, Contact, Shipping, Returns, FAQ</li>
+        <li>Help chatbot (live order lookup)</li>
+        <li>Demo login stored in browser (localStorage)</li>
+      </ul>
+      <div class="note amber">⚠️ Demo auth only — real login with passwords lives in the browser, not the database</div>
+    </div>
+
+    <div class="arrow"><span class="a">⇄</span><span class="l">JSON<br>over HTTPS</span></div>
+
+    <div class="card api">
+      <h2>2 · Homeline API</h2>
+      <div class="note violet">BACKEND — Node.js + Express<br>Hosted on <b>Render</b> · homeline-api.onrender.com/api</div>
+      <ul>
+        <li>GET /products · /categories</li>
+        <li>POST /orders (places order, reduces stock)</li>
+        <li>GET /orders/:orderNumber · POST /orders/cancel</li>
+        <li>GET /reviews · POST /reviews</li>
+        <li>GET /promos · POST /promos · PATCH /promos/:id</li>
+        <li>PATCH /inventory/:id (restock / manual edit)</li>
+        <li>POST /newsletter · POST /contact</li>
+      </ul>
+      <div class="note green">One JSON endpoint per feature — the app talks to the API, never to the database directly</div>
+    </div>
+
+    <div class="arrow"><span class="a">⇄</span><span class="l">SQL via<br>Supabase client</span></div>
+
+    <div class="card db">
+      <h2>3 · Supabase Database</h2>
+      <div class="note green">PostgreSQL (managed cloud), project: uvlthouojygwthqdnlpx</div>
+      <ul>
+        <li><b>products</b> + categories — the live catalog</li>
+        <li><b>orders</b> + order_items — sales, cost & profit</li>
+        <li><b>stock_movements</b> — audit log of every stock change</li>
+        <li><b>reviews</b> — customer ratings & comments</li>
+        <li><b>promo_codes</b> — vouchers you manage</li>
+        <li><b>newsletter_subscribers</b> + contact_messages</li>
+      </ul>
+      <div class="note violet">Trusted database functions: <code>record_order</code> · <code>cancel_order</code> · <code>adjust_stock</code> — these do the safe, all-or-nothing stock updates</div>
+    </div>
+  </div>
+
+  <!-- External services -->
+  <section class="block">
+    <h3>🧩 Around the system</h3>
+    <div class="grid">
+      <div class="mini"><h4>📸 Pexels (product photos)</h4><p>All product images load directly from Pexels CDN links stored in the products table.</p></div>
+      <div class="mini"><h4>⚙️ Vercel (frontend)</h4><p>Serves the React app. Any push to <code>main</code> triggers a rebuild automatically.</p></div>
+      <div class="mini"><h4>🖥️ Render (API)</h4><p>Runs the Express API. Auto-redeploys on each push (~2–3 min).</p></div>
+      <div class="mini"><h4>🐘 Supabase (database)</h4><p>Free cloud PostgreSQL with row-level security (RLS) — demo-level "trust" policies via the anon key.</p></div>
+      <div class="mini"><h4>💳 Payments (simulated)</h4><p>Card, e-wallet, COD, PayPal are simulated in the demo — no real payment is charged.</p></div>
+      <div class="mini"><h4>🤖 Help chatbot</h4><p>Built into the app: answers questions from a knowledge base and checks real orders by number.</p></div>
+    </div>
+  </section>
+
+  <!-- Key data flows -->
+  <section class="block">
+    <h3>🔁 How money & stock move (the important flows)</h3>
+    <div class="flows">
+      <div class="fstep"><span class="no">1</span><div><b>Customer buys</b><p>Checkout → <code>POST /orders</code> → <code>record_order</code> writes the order + items, subtracts stock, logs a <code>sale</code> movement — all in one safety step.</p></div></div>
+      <div class="fstep"><span class="no">2</span><div><b>Order number given</b><p>The customer gets <code>HML-YYYYMMDD-NNNN</code> to track, cancel, or reorder later.</p></div></div>
+      <div class="fstep"><span class="no">3</span><div><b>Cancel order</b><p><code>POST /orders/cancel</code> → <code>cancel_order</code> validates (24-hr window), restores stock, logs an <code>adjustment</code>, marks the order cancelled.</p></div></div>
+      <div class="fstep"><span class="no">4</span><div><b>Restock / edit stock</b><p>Inventory → <code>PATCH /inventory/:id</code> → <code>adjust_stock</code> updates stock and logs why.</p></div></div>
+      <div class="fstep"><span class="no">5</span><div><b>Profit tracking</b><p>At sale time we freeze each item's <code>cost_price</code>, so revenue and profit charts are exact even if prices change later.</p></div></div>
+      <div class="fstep"><span class="no">6</span><div><b>Chatbot lookup</b><p>Customer types an order number → <code>GET /orders/:orderNumber</code> → the bot replies with the live status (pending → shipped → delivered / cancelled).</p></div></div>
+    </div>
+  </section>
+
+  <!-- Legend -->
+  <section class="block">
+    <h3>🗝️ Legend</h3>
+    <div class="legend">
+      <span class="chip c-blue">Frontend (React)</span>
+      <span class="chip c-purple">Backend API (Express)</span>
+      <span class="chip c-green">Database (Supabase)</span>
+      <span class="chip c-amber">Demo / simulated</span>
+      <span class="chip c-red">Security watch item</span>
+    </div>
+    <div class="grid" style="margin-top:14px;">
+      <div class="mini"><h4>🔐 RLS demo trust</h4><p>For this demo the anon key may insert/update products, promos and reviews. For a real business, switch these to authenticated roles — it's documented in the seed file.</p></div>
+      <div class="mini"><h4>⚠️ Security reminder</h4><p>The Supabase <code>service_role</code> JWT and the database password were exposed in an old commit — rotate both in the Supabase dashboard.</p></div>
+      <div class="mini"><h4>🚚 Live & tested</h4><p>API endpoints are reachable at homeline-api.onrender.com and verified with HTTP 200 checks and real end-to-end orders.</p></div>
+    </div>
+  </section>
+
+  <div class="foot">Homeline architecture overview · generated from the live codebase · all text, no images</div>
+</div>
+</body>
+</html>
