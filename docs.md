@@ -292,14 +292,15 @@ these to an authenticated role before using real data.
 Base URL: `http://localhost:5000/api`. All request and response bodies are JSON. CORS is
 wide open (`app.use(cors())`).
 
-If Supabase is unconfigured, every route except `/api/health` returns `503` with
+If Supabase is unconfigured, every route except `/` and `/api/health` returns `503` with
 `"Supabase is not configured"`.
 
 ### Health
 
 | Method | Path | Notes |
 | ------ | ---- | ----- |
-| `GET` | `/health` | `{"ok":true,"database":"supabase"\|"unconfigured"}` |
+| `GET` | `/` | Outside the `/api` surface: returns service status, database state, and the endpoint list, so a bare visit to the deployed domain is not a dead end |
+| `GET` | `/api/health` | `{"ok":true,"database":"supabase"\|"unconfigured"}` |
 
 ### Products
 
@@ -526,12 +527,57 @@ Vercel domain, the rewrite serves `index.html` instead of JSON, and the storefro
 **with no products and no visible error**. This is the single most likely deployment
 failure.
 
-### Backend — Render
+### Both halves — Render Blueprint
 
-`render.yaml` is included. Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in the Render
-dashboard; do not rely on the committed `server/.env`, which is gitignored.
+`render.yaml` deploys the **entire stack** as one Blueprint. Dashboard → **New →
+Blueprint** → select the repo → **Apply**. Render prompts for the two values marked
+`sync: false`, then builds both services:
 
-Also supported: Railway, Heroku, DigitalOcean App Platform, AWS Elastic Beanstalk.
+| Service | Type | URL |
+| ------- | ---- | --- |
+| `homeline-api` | `web` / `node`, `plan: free` | `https://homeline-api.onrender.com` |
+| `homeline-client` | `web` / `static` | `https://homeline-client.onrender.com` |
+
+```yaml
+# supabase values, prompted for on creation
+- key: SUPABASE_URL
+  sync: false
+- key: SUPABASE_ANON_KEY
+  sync: false
+# client build-time value, derived from the service name
+- key: VITE_API_URL
+  value: https://homeline-api.onrender.com/api
+```
+
+Details that matter:
+
+- **SPA fallback.** `routes` rewrites `/*` → `/index.html`. The app uses `BrowserRouter`,
+  and a static site has no fallback on its own, so without this a direct visit or refresh
+  to `/shop` or `/cart` returns a 404.
+- **Cache headers.** `/assets/*` is `immutable` (Vite hashes filenames); `/index.html` is
+  `no-cache`, so clients do not keep loading a stale bundle after a deploy.
+- **`PORT` is never hardcoded** — Render assigns it and `server.js` reads
+  `process.env.PORT`.
+- **`VITE_API_URL` is inlined at build time**, so it must be present when the site builds.
+  It is hardcoded to the hostname derived from the service name: **rename `homeline-api`
+  and you must update this value**, or the site builds pointing at a dead host and renders
+  with no products, silently.
+- **`buildFilter`** keeps the monorepo sane — editing `client/` does not rebuild the API,
+  and vice versa.
+- The static site sets no `rootDir`; the build command `cd`s into `client/` and
+  `staticPublishPath: ./client/dist` is relative to the repo root, which is unambiguous.
+
+**Free-plan caveat:** the API sleeps after 15 minutes idle and takes roughly 30–60 seconds
+to wake. The first request after a pause will hang before it succeeds — this is normal,
+not a fault. Static sites are free and never sleep.
+
+**Verifying a deploy:** `https://homeline-api.onrender.com/api/health` should return
+`{"ok":true,"database":"supabase"}`, and `https://homeline-api.onrender.com/` returns
+service status plus the endpoint list. If the root still shows `Cannot GET /`, the API is
+running an older commit — push and let auto-deploy catch up.
+
+Also supported: Vercel (frontend, see above), Railway, Heroku, DigitalOcean App Platform,
+AWS Elastic Beanstalk.
 
 ### Production checklist
 
