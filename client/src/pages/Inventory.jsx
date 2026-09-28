@@ -27,6 +27,9 @@ import PromosView from '../components/inventory/PromosView';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
+// Admin check — only this email gets Inventory access
+const isAdmin = (user) => user?.email === 'admin@homeline.ph';
+
 const statusStyles = {
   in: 'bg-green-50 text-green-700',
   low: 'bg-amber-50 text-amber-700',
@@ -40,6 +43,13 @@ const statusDot = {
 };
 
 const Inventory = () => {
+  const currentUser = JSON.parse(localStorage.getItem('homelineCurrentUser') || 'null');
+  if (!isAdmin(currentUser)) {
+    // Defense in depth — redirect non-admins immediately
+    if (typeof window !== 'undefined') window.location.href = '/';
+    return null;
+  }
+
   const { products, refresh } = useShopData();
   const [tab, setTab] = useState('products');
   const [query, setQuery] = useState('');

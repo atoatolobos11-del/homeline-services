@@ -34,6 +34,9 @@ function ScrollToTop() {
   return null;
 }
 
+// Admin check helper — only this email gets Inventory access
+const isAdmin = (user) => user?.email === 'admin@homeline.ph';
+
 function AppLayout({ currentUser }) {
   return (
     <div className="min-h-screen flex flex-col">
@@ -58,7 +61,7 @@ function AppLayout({ currentUser }) {
           <Route path="/returns" element={<ReturnsPage />} />
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/profile" element={currentUser ? <Profile /> : <Navigate to="/login" replace />} />
-          <Route path="/inventory" element={currentUser ? <Inventory /> : <Navigate to="/login" replace />} />
+          <Route path="/inventory" element={currentUser && isAdmin(currentUser) ? <Inventory /> : <Navigate to="/" replace />} />
           <Route path="/cart" element={currentUser ? <Cart /> : <Navigate to="/login" replace />} />
           <Route path="/checkout" element={currentUser ? <Checkout /> : <Navigate to="/login" replace />} />
           <Route path="/order" element={currentUser ? <OrderStatus /> : <Navigate to="/login" replace />} />

@@ -22,6 +22,10 @@ const Header = () => {
   const { products = [] } = useShopData();
   const currentUser = JSON.parse(localStorage.getItem('homelineCurrentUser') || 'null');
 
+  // Admin check — only this email gets Inventory access
+  const isAdmin = (user) => user?.email === 'admin@homeline.ph';
+  const currentUserIsAdmin = isAdmin(currentUser);
+
   // --- Debounced product search -------------------------------------------------
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
@@ -68,7 +72,7 @@ const Header = () => {
     { name: 'Shop', href: '/catalog' },
     { name: 'Bestsellers', href: '/bestsellers' },
     { name: 'Categories', href: '/categories' },
-    ...(currentUser ? [{ name: 'Inventory', href: '/inventory' }] : []),
+    ...(currentUserIsAdmin ? [{ name: 'Inventory', href: '/inventory' }] : []),
     { name: 'About', href: '/about' }
   ];
 
