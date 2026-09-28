@@ -1,17 +1,12 @@
 # =============================================================================
-# Homeline — Render Blueprint (API-only service)
+# Homeline — Render Blueprint (FULL SITE: API + storefront on one origin)
 #
-# Creates the API service that the Vercel storefront talks to:
+# One service serves everything:
+#   https://homeline-api.onrender.com/        → React storefront (SPA)
+#   https://homeline-api.onrender.com/api/... → JSON API
 #
-#   https://homeline-api.onrender.com/api/...   → JSON API (Express + Supabase)
-#
-# The storefront is deployed separately on Vercel with
-# VITE_API_URL = https://homeline-api.onrender.com/api
-#
-# Usage (fastest way): dashboard.render.com -> New -> Blueprint
-#   -> connect/select this repo (atoatolobos11-del/homeline-services)
-#   -> Render prompts for the two Supabase values marked `sync: false`
-#   -> Apply
+# Usage: dashboard.render.com -> New -> Blueprint -> select this repo
+#        Render prompts for the two Supabase values marked `sync: false`.
 #
 # Docs: https://render.com/docs/blueprint-spec
 # =============================================================================
@@ -21,20 +16,20 @@ services:
     name: homeline-api
     runtime: node
     plan: free
-    region: singapore            # closest to PH customers and the Supabase pooler
-    rootDir: server              # the Express API lives in /server
-    buildCommand: npm install
-    startCommand: node server.js
+    region: singapore
+    rootDir: server
+    buildCommand: npm install && cd ../client && npm install && npm run build
+    startCommand: npm start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     buildFilter:
       paths:
+        - client/**
         - server/**
         - render.yaml
     envVars:
       - key: NODE_ENV
         value: production
-      # Render injects PORT automatically — do not hardcode it.
       - key: SUPABASE_URL
         sync: false              # https://uvlthouojygwthqdnlpx.supabase.co
       - key: SUPABASE_ANON_KEY
