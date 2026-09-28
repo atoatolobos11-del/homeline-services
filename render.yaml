@@ -1,50 +1,41 @@
 # =============================================================================
-# Homeline — Render Blueprint
+# Homeline — Render Blueprint (API-only service)
 #
-# Single-service deployment: one Node process serves BOTH the REST API and the
-# built React storefront, so everything lives on one origin and one URL.
+# Creates the API service that the Vercel storefront talks to:
 #
-#   https://homeline.onrender.com/          → React app (SPA)
-#   https://homeline.onrender.com/api/...   → JSON API
+#   https://homeline-api.onrender.com/api/...   → JSON API (Express + Supabase)
 #
-# Why one service: the client calls the API with a relative "/api" path, so
-# there is no VITE_API_URL to configure, no cross-origin request, and no way for
-# the storefront to load against a dead API host.
+# The storefront is deployed separately on Vercel with
+# VITE_API_URL = https://homeline-api.onrender.com/api
 #
-# Usage: dashboard.render.com -> New -> Blueprint -> select this repo
-#        Render prompts for the two Supabase values marked `sync: false`.
+# Usage (fastest way): dashboard.render.com -> New -> Blueprint
+#   -> connect/select this repo (atoatolobos11-del/homeline-services)
+#   -> Render prompts for the two Supabase values marked `sync: false`
+#   -> Apply
 #
 # Docs: https://render.com/docs/blueprint-spec
 # =============================================================================
 
 services:
   - type: web
-    name: homeline
+    name: homeline-api
     runtime: node
     plan: free
-    # Repo root (not server/) because the build needs client/ as well.
-    rootDir: .
-    # There is no root package.json — each half installs its own dependencies.
-    buildCommand: cd server && npm install && cd ../client && npm install && npm run build
-    startCommand: cd server && npm start
+    region: singapore            # closest to PH customers and the Supabase pooler
+    rootDir: server              # the Express API lives in /server
+    buildCommand: npm install
+    startCommand: node server.js
     healthCheckPath: /api/health
     autoDeployTrigger: commit
-    # The API and the client ship together, so a build needs both trees.
     buildFilter:
       paths:
-        - client/**
         - server/**
         - render.yaml
     envVars:
       - key: NODE_ENV
         value: production
-      # Server binds to process.env.PORT, which Render injects automatically.
-      # Do NOT hardcode PORT here — Render assigns it.
-      #
-      # VITE_API_URL is deliberately NOT set: client/src/context/DataContext.jsx
-      # falls back to the relative path "/api", which is correct on a single
-      # origin. Setting it would only re-introduce the chance of a bad host.
+      # Render injects PORT automatically — do not hardcode it.
       - key: SUPABASE_URL
-        sync: false # https://<project-ref>.supabase.co
+        sync: false              # https://uvlthouojygwthqdnlpx.supabase.co
       - key: SUPABASE_ANON_KEY
-        sync: false # publishable / anon key — safe to expose, RLS does the work
+        sync: false              # publishable / anon key — safe to expose, RLS does the work
