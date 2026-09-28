@@ -9,6 +9,13 @@ import Catalog from './pages/Catalog'
 import BestsellersPage from './pages/BestsellersPage'
 import CategoriesPage from './pages/CategoriesPage'
 import AboutPage from './pages/AboutPage'
+import SustainabilityPage from './pages/SustainabilityPage'
+import JournalPage from './pages/JournalPage'
+import CareersPage from './pages/CareersPage'
+import ContactPage from './pages/ContactPage'
+import ShippingPage from './pages/ShippingPage'
+import ReturnsPage from './pages/ReturnsPage'
+import FaqPage from './pages/FaqPage'
 import Profile from './pages/Profile'
 import Inventory from './pages/Inventory'
 import Cart from './pages/Cart'
@@ -17,9 +24,17 @@ import OrderStatus from './pages/OrderStatus'
 import ProductDetail from './pages/ProductDetail'
 import HelpChatbot from './components/ui/HelpChatbot'
 
-function AppLayout({ currentUser }) {
-  const location = useLocation();
+function ScrollToTop() {
+  const { pathname } = useLocation();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
+function AppLayout({ currentUser }) {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -35,6 +50,13 @@ function AppLayout({ currentUser }) {
           <Route path="/bestsellers" element={currentUser ? <BestsellersPage /> : <Navigate to="/login" replace />} />
           <Route path="/categories" element={currentUser ? <CategoriesPage /> : <Navigate to="/login" replace />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/sustainability" element={<SustainabilityPage />} />
+          <Route path="/journal" element={<JournalPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/shipping" element={<ShippingPage />} />
+          <Route path="/returns" element={<ReturnsPage />} />
+          <Route path="/faq" element={<FaqPage />} />
           <Route path="/profile" element={currentUser ? <Profile /> : <Navigate to="/login" replace />} />
           <Route path="/inventory" element={currentUser ? <Inventory /> : <Navigate to="/login" replace />} />
           <Route path="/cart" element={currentUser ? <Cart /> : <Navigate to="/login" replace />} />
@@ -44,7 +66,8 @@ function AppLayout({ currentUser }) {
           <Route path="/product/:slug" element={currentUser ? <ProductDetail /> : <Navigate to="/login" replace />} />
         </Routes>
       </main>
-      {location.pathname === '/about' && <Footer />}
+      <ScrollToTop />
+      <Footer />
       <HelpChatbot />
     </div>
   );

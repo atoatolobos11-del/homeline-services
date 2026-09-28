@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Mail } from 'lucide-react';
 import Toast from '../ui/Toast';
 
@@ -28,18 +29,41 @@ const Footer = () => {
       { name: 'Collections', href: '#categories' }
     ],
     company: [
-      { name: 'About Us', href: '#sustainability' },
-      { name: 'Sustainability', href: '#sustainability' },
-      { name: 'Journal', href: '#' },
-      { name: 'Careers', href: '#' }
+      { name: 'About Us', href: '/about' },
+      { name: 'Sustainability', href: '/sustainability' },
+      { name: 'Journal', href: '/journal' },
+      { name: 'Careers', href: '/careers' }
     ],
     help: [
       { name: 'Track / Cancel Order', href: '/order' },
-      { name: 'Contact', href: '#' },
-      { name: 'Shipping', href: '#' },
-      { name: 'Returns', href: '#' },
-      { name: 'FAQ', href: '#' }
+      { name: 'Contact', href: '/contact' },
+      { name: 'Shipping', href: '/shipping' },
+      { name: 'Returns', href: '/returns' },
+      { name: 'FAQ', href: '/faq' }
     ]
+  };
+
+  const renderLink = (link) => {
+    if (link.href.startsWith('/')) {
+      // Real SPA route — navigate client-side and scroll to top.
+      return (
+        <Link
+          to={link.href}
+          className="text-cream/80 hover:text-cream text-sm transition-colors cursor-pointer inline-block"
+        >
+          {link.name}
+        </Link>
+      );
+    }
+    return (
+      <a
+        href={link.href}
+        onClick={(e) => handleLinkClick(e, link.href)}
+        className="text-cream/80 hover:text-cream text-sm transition-colors cursor-pointer"
+      >
+        {link.name}
+      </a>
+    );
   };
 
   const handleLinkClick = (e, href) => {
@@ -72,15 +96,7 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Shop</h4>
             <ul className="space-y-2">
               {footerLinks.shop.map((link) => (
-                <li key={link.name}>
-                  <a 
-                    href={link.href}
-                    onClick={(e) => handleLinkClick(e, link.href)}
-                    className="text-cream/80 hover:text-cream text-sm transition-colors cursor-pointer"
-                  >
-                    {link.name}
-                  </a>
-                </li>
+                <li key={link.name}>{renderLink(link)}</li>
               ))}
             </ul>
           </div>
@@ -90,15 +106,7 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
-                <li key={link.name}>
-                  <a 
-                    href={link.href}
-                    onClick={(e) => handleLinkClick(e, link.href)}
-                    className="text-cream/80 hover:text-cream text-sm transition-colors cursor-pointer"
-                  >
-                    {link.name}
-                  </a>
-                </li>
+                <li key={link.name}>{renderLink(link)}</li>
               ))}
             </ul>
           </div>
@@ -108,15 +116,7 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Help</h4>
             <ul className="space-y-2">
               {footerLinks.help.map((link) => (
-                <li key={link.name}>
-                  <a 
-                    href={link.href}
-                    onClick={(e) => handleLinkClick(e, link.href)}
-                    className="text-cream/80 hover:text-cream text-sm transition-colors cursor-pointer"
-                  >
-                    {link.name}
-                  </a>
-                </li>
+                <li key={link.name}>{renderLink(link)}</li>
               ))}
             </ul>
           </div>
