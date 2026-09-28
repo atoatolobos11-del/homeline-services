@@ -523,22 +523,22 @@ update public.order_items oi
 
 -- Sample customer reviews so product pages feel alive.
 insert into public.reviews (product_id, customer_name, rating, comment) values
-  ('skillet-11',   'Maria Santos',      5, 'Ang ganda ng cast iron — hindi dumidikit kahit konti lang ang oil!'),
+  ('skillet-11',   'Maria Santos',      5, 'The cast iron is beautiful — nothing sticks even with just a little oil!'),
   ('skillet-11',   'John Reyes',        5, 'Heavy and beautifully seasoned. Perfect for family meals.'),
-  ('skillet-11',   'Ann Cruz',          4, 'Mahusay, pero mabigat para sa akin. Sulit naman ang quality.'),
-  ('mug-set-09',   'Dina Lopez',        5, 'Cute at matibay ang mugs — ganda ng ceramic finish.'),
+  ('skillet-11',   'Ann Cruz',          4, 'Very good, though a bit heavy for me. The quality is worth it.'),
+  ('mug-set-09',   'Dina Lopez',        5, 'The mugs are cute and sturdy — the ceramic finish is lovely.'),
   ('mug-set-09',   'Paolo Garcia',      4, 'Nice weight, keeps the coffee hot longer.'),
-  ('eco-bottle-01','Grace Tan',         5, 'Perfect sa office — wala nang plastic bottles!'),
-  ('eco-bottle-01','Rico Domingo',      4, 'Solid bottle, madaling hugasan. Recommended.'),
-  ('bedsheet-17',  'Liza Mendoza',      5, 'Napakalambot ng cotton! Sulit ang bawat piso.'),
+  ('eco-bottle-01','Grace Tan',         5, 'Perfect for the office — no more plastic bottles!'),
+  ('eco-bottle-01','Rico Domingo',      4, 'Solid bottle, easy to wash. Recommended.'),
+  ('bedsheet-17',  'Liza Mendoza',      5, 'The cotton is so soft! Worth every peso.'),
   ('bedsheet-17',  'Carlo Villanueva',  5, 'Fits well and feels premium.'),
-  ('duvet-19',     'Maya Fernandez',    5, 'Ganda ng kulay at sobrang komportable.'),
-  ('duvet-19',     'Ben Salazar',       4, 'Nice linen feel — medj mahal pero worth it.'),
-  ('throwblanket-24', 'Nina Aquino',    5, 'Sarap yakapin sa gabi! Ang ganda ng knit.'),
-  ('throwblanket-24', 'Kim Dela Cruz',  5, 'Bought as a gift — ang ganda talaga.'),
-  ('salaset-20',   'Joey Ramos',        5, 'Ang ganda ng sala set! Parang nasa high-end store.'),
-  ('salaset-20',   'Alyssa Bautista',   4, 'Comfortable at elegant. Slightly slow lang ang delivery.'),
-  ('board-08',     'Tess Rivera',       5, 'Solid na kahoy, magandang pang-serve.')
+  ('duvet-19',     'Maya Fernandez',    5, 'Beautiful color and so comfortable.'),
+  ('duvet-19',     'Ben Salazar',       4, 'Nice linen feel — a bit pricey but worth it.'),
+  ('throwblanket-24', 'Nina Aquino',    5, 'So cozy to snuggle with at night! The knit is beautiful.'),
+  ('throwblanket-24', 'Kim Dela Cruz',  5, 'Bought as a gift — it really is beautiful.'),
+  ('salaset-20',   'Joey Ramos',        5, 'The living room set is gorgeous! Feels like a high-end store.'),
+  ('salaset-20',   'Alyssa Bautista',   4, 'Comfortable and elegant. Delivery was slightly slow.'),
+  ('board-08',     'Tess Rivera',       5, 'Solid wood, great for serving.')
 on conflict do nothing;
 
 -- Starter promo codes. The owner can add more from Inventory > Promos.

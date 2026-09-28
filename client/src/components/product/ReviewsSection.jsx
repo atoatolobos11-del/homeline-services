@@ -64,7 +64,7 @@ const ReviewsSection = ({ productId }) => {
       return;
     }
     if (!trimmedComment) {
-      setFormError('Madali lang — anong masasabi mo sa product? (add a comment)');
+      setFormError('Quick — what did you think of the product? (add a comment)');
       return;
     }
     setSubmitting(true);
@@ -84,7 +84,7 @@ const ReviewsSection = ({ productId }) => {
       setName('');
       setRating(0);
       setComment('');
-      setFormSuccess('Salamat! Nai-publish ang review mo. ✓');
+      setFormSuccess('Thank you! Your review is now live. ✓');
       load();
     } catch (err) {
       setFormError(err.message);
@@ -128,7 +128,7 @@ const ReviewsSection = ({ productId }) => {
           <div className="space-y-4">
             {reviews.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-beige bg-white px-6 py-12 text-center text-muted">
-                Wala pang reviews — maging unang mag-rate ng produktong ito!
+                No reviews yet — be the first to rate this product!
               </div>
             ) : (
               reviews.map((review) => (
@@ -180,7 +180,7 @@ const ReviewsSection = ({ productId }) => {
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows="3"
-                  placeholder="Ano ang masasabi mo sa produktong ito?"
+                  placeholder="What did you think of this product?"
                   className="w-full rounded-xl border border-beige px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
                 />
               </div>

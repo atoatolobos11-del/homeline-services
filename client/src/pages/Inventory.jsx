@@ -210,7 +210,7 @@ const Inventory = () => {
               {summary.out > 0 && <span>{summary.out} out of stock</span>}
               {summary.out > 0 && summary.low > 0 && <span> · </span>}
               {summary.low > 0 && <span>{summary.low} low / need reorder</span>}
-              <span className="ml-1">— restock na!</span>
+              <span className="ml-1">— restock now!</span>
             </p>
           </div>
           <button

@@ -128,12 +128,12 @@ const Profile = () => {
           <h2 className="text-2xl font-bold text-charcoal">My Orders</h2>
         </div>
         <p className="mt-1 text-sm text-muted">
-          Nasa ibaba ang mga order na dinala mo gamit ang email {currentUser.email || 'na ito'}.
+          Below are the orders you placed with the email {currentUser.email || 'you used to sign up'}.
         </p>
 
         {orderError && (
           <p className="mt-5 rounded-2xl bg-red-50 px-5 py-4 text-sm text-red-600">
-            {orderError} — tandaan: kailangan pareho ang email sa checkout at login para makita sila dito.
+            {orderError} — remember: use the same email at checkout and login so they appear here.
           </p>
         )}
 
@@ -146,9 +146,9 @@ const Profile = () => {
         {orders && myOrders.length === 0 && (
           <div className="mt-5 rounded-3xl border border-dashed border-beige bg-white px-6 py-14 text-center">
             <Package className="mx-auto h-10 w-10 text-beige" />
-            <p className="mt-4 font-semibold text-charcoal">Wala pang orders</p>
+            <p className="mt-4 font-semibold text-charcoal">No orders yet</p>
             <p className="mt-1 text-sm text-muted">
-              Kapag bumili ka na gamit ang email na ito, lalabas dito ang iyong order history.
+              Once you place an order with this email, your order history will appear here.
             </p>
             <button
               type="button"
