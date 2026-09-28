@@ -14,12 +14,16 @@ import {
   ShoppingBag,
   PlusCircle,
   Loader,
+  Users,
+  Tag,
 } from 'lucide-react';
 import { useShopData } from '../context/DataContext';
 import { getStockStatus, stockStatusLabel, formatPeso, DEFAULT_REORDER_LEVEL } from '../utils/stock';
 import ProductFormModal from '../components/inventory/ProductFormModal';
 import SalesView from '../components/inventory/SalesView';
 import ActivityView from '../components/inventory/ActivityView';
+import CustomersView from '../components/inventory/CustomersView';
+import PromosView from '../components/inventory/PromosView';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -167,6 +171,8 @@ const Inventory = () => {
   const tabs = [
     { id: 'products', label: 'Products', icon: Package },
     { id: 'sales', label: 'Sales', icon: ShoppingBag },
+    { id: 'customers', label: 'Customers', icon: Users },
+    { id: 'promos', label: 'Promos', icon: Tag },
     { id: 'activity', label: 'Activity', icon: History },
   ];
 
@@ -190,6 +196,32 @@ const Inventory = () => {
           Add product
         </button>
       </div>
+
+      {/* Low stock / out of stock alert */}
+      {(summary.low > 0 || summary.out > 0) && (
+        <div
+          className={`mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4 ${
+            summary.out > 0 ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <AlertTriangle className={`h-5 w-5 ${summary.out > 0 ? 'text-red-600' : 'text-amber-600'}`} />
+            <p className={`text-sm font-semibold ${summary.out > 0 ? 'text-red-700' : 'text-amber-800'}`}>
+              {summary.out > 0 && <span>{summary.out} out of stock</span>}
+              {summary.out > 0 && summary.low > 0 && <span> · </span>}
+              {summary.low > 0 && <span>{summary.low} low / need reorder</span>}
+              <span className="ml-1">— restock na!</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTab('products')}
+            className="rounded-full bg-white px-4 py-2 text-xs font-bold text-primary shadow-sm transition hover:bg-primary hover:text-white active:scale-95"
+          >
+            Go to products
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="mt-8 flex gap-2">
@@ -402,6 +434,18 @@ const Inventory = () => {
       {tab === 'activity' && (
         <div className="mt-8">
           <ActivityView />
+        </div>
+      )}
+
+      {tab === 'customers' && (
+        <div className="mt-8">
+          <CustomersView />
+        </div>
+      )}
+
+      {tab === 'promos' && (
+        <div className="mt-8">
+          <PromosView />
         </div>
       )}
 

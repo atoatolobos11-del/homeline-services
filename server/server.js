@@ -396,6 +396,139 @@ app.get('/api/categories', async (_req, res) => {
   res.json(data)
 })
 
+// ---------- Product reviews ----------
+
+app.get('/api/reviews', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  let query = client.from('reviews').select('*').order('created_at', { ascending: false })
+  const productId = req.query.productId
+  if (productId) query = query.eq('product_id', String(productId).trim())
+  const { data, error } = await query
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.json(data || [])
+})
+
+app.post('/api/reviews', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  const { productId, customerName, rating, comment } = req.body ?? {}
+  if (typeof productId !== 'string' || !productId.trim()) {
+    res.status(400).json({ error: 'productId is required' })
+    return
+  }
+  if (typeof customerName !== 'string' || !customerName.trim()) {
+    res.status(400).json({ error: 'customerName is required' })
+    return
+  }
+  const value = Number(rating)
+  if (!Number.isInteger(value) || value < 1 || value > 5) {
+    res.status(400).json({ error: 'rating must be a whole number from 1 to 5' })
+    return
+  }
+  const { data, error } = await client
+    .from('reviews')
+    .insert({
+      product_id: productId.trim(),
+      customer_name: customerName.trim().slice(0, 80),
+      rating: value,
+      comment: typeof comment === 'string' ? comment.trim().slice(0, 500) : null,
+    })
+    .select()
+    .single()
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.status(201).json(data)
+})
+
+// ---------- Promo codes (Inventory > Promos) ----------
+
+app.get('/api/promos', async (_req, res) => {
+  const client = requireSupabase(_req, res)
+  if (!client) return
+  const { data, error } = await client.from('promo_codes').select('*').order('created_at', { ascending: false })
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  res.json(data || [])
+})
+
+app.post('/api/promos', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  const { id, discountType, value, minSpend, expiresAt } = req.body ?? {}
+  const code = typeof id === 'string' ? id.trim().toUpperCase() : ''
+  if (!code) {
+    res.status(400).json({ error: 'Promo code is required' })
+    return
+  }
+  const type = discountType === 'fixed' ? 'fixed' : 'percent'
+  const discountValue = Number(value)
+  if (!Number.isFinite(discountValue) || discountValue <= 0) {
+    res.status(400).json({ error: 'value must be a positive number' })
+    return
+  }
+  const minimumSpend = Number(minSpend) >= 0 ? Number(minSpend) : 0
+  let expiry = null
+  if (expiresAt) {
+    expiry = new Date(expiresAt)
+    if (Number.isNaN(expiry.getTime())) {
+      res.status(400).json({ error: 'expiresAt is not a valid date' })
+      return
+    }
+    expiry = expiry.toISOString()
+  }
+  const { data, error } = await client
+    .from('promo_codes')
+    .insert({
+      id: code,
+      discount_type: type,
+      value: discountValue,
+      min_spend: minimumSpend,
+      expires_at: expiry,
+      active: true,
+    })
+    .select()
+    .single()
+  if (error) {
+    res.status(400).json({ error: error.message })
+    return
+  }
+  res.status(201).json(data)
+})
+
+app.patch('/api/promos/:id', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  const code = String(req.params.id || '').trim()
+  if (!code) {
+    res.status(400).json({ error: 'Promo code is required' })
+    return
+  }
+  const { active } = req.body ?? {}
+  if (typeof active !== 'boolean') {
+    res.status(400).json({ error: 'active must be a boolean' })
+    return
+  }
+  const { data, error } = await client
+    .from('promo_codes')
+    .update({ active })
+    .eq('id', code)
+    .select()
+    .single()
+  if (error) {
+    res.status(400).json({ error: error.message })
+    return
+  }
+  res.json(data)
+})
+
 // ---------- Product management (add / edit from the dashboard) ----------
 
 app.post('/api/products', async (req, res) => {

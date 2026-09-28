@@ -6,6 +6,7 @@ import { ArrowLeft, CreditCard, Lock, CheckCircle, XCircle, Loader } from 'lucid
 import Button from '../components/ui/Button';
 import Toast from '../components/ui/Toast';
 import { cancelOrder } from '../utils/orders';
+import { formatPeso } from '../utils/stock';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -24,8 +25,9 @@ const Checkout = () => {
   const [cancelError, setCancelError] = useState(null);
   const [shippingMethod, setShippingMethod] = useState('standard');
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState(null); // { id, discountType, value }
   const [promoMessage, setPromoMessage] = useState('');
+  const [promoMessageType, setPromoMessageType] = useState('error');
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [orderNotes, setOrderNotes] = useState('');
   const [saveAddress, setSaveAddress] = useState(true);
@@ -90,28 +92,57 @@ const Checkout = () => {
     }
   };
 
-  const handleApplyPromo = () => {
+  const handleApplyPromo = async () => {
     const normalizedCode = promoCode.trim().toUpperCase();
 
     if (!normalizedCode) {
+      setPromoMessageType('error');
       setPromoMessage('Enter a promo code to continue.');
-      setAppliedPromo('');
+      setAppliedPromo(null);
       return;
     }
 
-    if (normalizedCode === 'SAVE10') {
-      setAppliedPromo('SAVE10');
-      setPromoMessage('Promo code applied successfully.');
-      return;
-    }
+    try {
+      const res = await fetch(`${apiBase}/promos`);
+      if (!res.ok) throw new Error('Could not load promo codes');
+      const codes = await res.json();
+      const promo = codes.find((code) => String(code.id).toUpperCase() === normalizedCode);
 
-    setAppliedPromo('');
-    setPromoMessage('That promo code is not valid.');
+      if (!promo || promo.active === false) {
+        setPromoMessageType('error');
+        setPromoMessage('That promo code is not valid.');
+        setAppliedPromo(null);
+        return;
+      }
+      if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
+        setPromoMessageType('error');
+        setPromoMessage('That promo code has expired.');
+        setAppliedPromo(null);
+        return;
+      }
+      if (Number(promo.min_spend) > 0 && cartTotal < Number(promo.min_spend)) {
+        setPromoMessageType('error');
+        setPromoMessage(`Minimum spend for this code is ${formatPeso(promo.min_spend)}.`);
+        setAppliedPromo(null);
+        return;
+      }
+
+      setAppliedPromo({ id: promo.id, discountType: promo.discount_type, value: Number(promo.value) });
+      setPromoMessageType('success');
+      setPromoMessage(`Promo code ${promo.id} applied successfully!`);
+    } catch {
+      setPromoMessageType('error');
+      setPromoMessage('Could not check the promo code — try again.');
+    }
   };
 
   const shippingCost = shippingOptions[shippingMethod].price;
   const giftWrapCost = giftWrapOptions[giftWrap].price;
-  const discountAmount = appliedPromo === 'SAVE10' ? cartTotal * 0.1 : 0;
+  const discountAmount = appliedPromo
+    ? appliedPromo.discountType === 'percent'
+      ? cartTotal * (appliedPromo.value / 100)
+      : Math.min(appliedPromo.value, cartTotal)
+    : 0;
   const taxAmount = (cartTotal + shippingCost + giftWrapCost - discountAmount) * 0.08;
   const totalAmount = cartTotal + shippingCost + giftWrapCost + taxAmount - discountAmount;
 
@@ -841,7 +872,9 @@ const Checkout = () => {
                   </button>
                 </div>
                 {promoMessage && (
-                  <p className={`mt-2 text-xs ${appliedPromo ? 'text-primary' : 'text-red-500'}`}>
+                  <p
+                    className={`mt-2 text-xs ${promoMessageType === 'success' ? 'font-semibold text-primary' : 'text-red-500'}`}
+                  >
                     {promoMessage}
                   </p>
                 )}

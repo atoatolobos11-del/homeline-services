@@ -98,6 +98,27 @@ create table if not exists public.stock_movements (
   created_at  timestamptz not null default now()
 );
 
+-- Customer product reviews (rating 1-5 + optional comment).
+create table if not exists public.reviews (
+  id            bigint generated always as identity primary key,
+  product_id    text not null references public.products(id),
+  customer_name text not null,
+  rating        integer not null check (rating between 1 and 5),
+  comment       text,
+  created_at    timestamptz not null default now()
+);
+
+-- Server-managed promo / voucher codes, created from the Inventory dashboard.
+create table if not exists public.promo_codes (
+  id            text primary key,
+  discount_type text not null check (discount_type in ('percent', 'fixed')),
+  value         numeric(10, 2) not null check (value > 0),
+  min_spend     numeric(10, 2) not null default 0,
+  expires_at    timestamptz,
+  active        boolean not null default true,
+  created_at    timestamptz not null default now()
+);
+
 -- ---------- Seed: products ----------
 
 insert into public.products
@@ -268,6 +289,8 @@ alter table public.contact_messages enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 alter table public.stock_movements enable row level security;
+alter table public.reviews enable row level security;
+alter table public.promo_codes enable row level security;
 
 drop policy if exists "anon can view products" on public.products;
 create policy "anon can view products" on public.products for select using (true);
@@ -298,6 +321,18 @@ create policy "anon can view order items" on public.order_items for select using
 
 drop policy if exists "anon can view stock movements" on public.stock_movements;
 create policy "anon can view stock movements" on public.stock_movements for select using (true);
+
+drop policy if exists "anon can view reviews" on public.reviews;
+create policy "anon can view reviews" on public.reviews for select using (true);
+drop policy if exists "anon can add reviews" on public.reviews;
+create policy "anon can add reviews" on public.reviews for insert with check (true);
+
+drop policy if exists "anon can view promo codes" on public.promo_codes;
+create policy "anon can view promo codes" on public.promo_codes for select using (true);
+drop policy if exists "anon can manage promo codes" on public.promo_codes;
+create policy "anon can manage promo codes" on public.promo_codes for insert with check (true);
+drop policy if exists "anon can update promo codes" on public.promo_codes;
+create policy "anon can update promo codes" on public.promo_codes for update using (true) with check (true);
 
 -- ---------- Inventory ----------
 -- All stock + order writes happen inside these SECURITY DEFINER functions
@@ -485,3 +520,31 @@ update public.order_items oi
   from public.products p
  where oi.product_id = p.id
    and oi.cost_price is null;
+
+-- Sample customer reviews so product pages feel alive.
+insert into public.reviews (product_id, customer_name, rating, comment) values
+  ('skillet-11',   'Maria Santos',      5, 'Ang ganda ng cast iron — hindi dumidikit kahit konti lang ang oil!'),
+  ('skillet-11',   'John Reyes',        5, 'Heavy and beautifully seasoned. Perfect for family meals.'),
+  ('skillet-11',   'Ann Cruz',          4, 'Mahusay, pero mabigat para sa akin. Sulit naman ang quality.'),
+  ('mug-set-09',   'Dina Lopez',        5, 'Cute at matibay ang mugs — ganda ng ceramic finish.'),
+  ('mug-set-09',   'Paolo Garcia',      4, 'Nice weight, keeps the coffee hot longer.'),
+  ('eco-bottle-01','Grace Tan',         5, 'Perfect sa office — wala nang plastic bottles!'),
+  ('eco-bottle-01','Rico Domingo',      4, 'Solid bottle, madaling hugasan. Recommended.'),
+  ('bedsheet-17',  'Liza Mendoza',      5, 'Napakalambot ng cotton! Sulit ang bawat piso.'),
+  ('bedsheet-17',  'Carlo Villanueva',  5, 'Fits well and feels premium.'),
+  ('duvet-19',     'Maya Fernandez',    5, 'Ganda ng kulay at sobrang komportable.'),
+  ('duvet-19',     'Ben Salazar',       4, 'Nice linen feel — medj mahal pero worth it.'),
+  ('throwblanket-24', 'Nina Aquino',    5, 'Sarap yakapin sa gabi! Ang ganda ng knit.'),
+  ('throwblanket-24', 'Kim Dela Cruz',  5, 'Bought as a gift — ang ganda talaga.'),
+  ('salaset-20',   'Joey Ramos',        5, 'Ang ganda ng sala set! Parang nasa high-end store.'),
+  ('salaset-20',   'Alyssa Bautista',   4, 'Comfortable at elegant. Slightly slow lang ang delivery.'),
+  ('board-08',     'Tess Rivera',       5, 'Solid na kahoy, magandang pang-serve.')
+on conflict do nothing;
+
+-- Starter promo codes. The owner can add more from Inventory > Promos.
+insert into public.promo_codes (id, discount_type, value, min_spend, expires_at, active) values
+  ('SAVE10',    'percent', 10,  0,    null, true),
+  ('WELCOME15', 'percent', 15,  1000, null, true),
+  ('FLAT50',    'fixed',   50,  500,  null, true),
+  ('SALE20',    'percent', 20,  2000, now() + interval '30 days', true)
+on conflict (id) do nothing;

@@ -6,6 +6,7 @@ import Toast from '../components/ui/Toast';
 import { useCart } from '../hooks/useCart';
 import { useShopData } from '../context/DataContext';
 import { getStockStatus } from '../utils/stock';
+import ReviewsSection from '../components/product/ReviewsSection';
 
 const sizeOptions = ['Small', 'Medium', 'Large'];
 
@@ -177,6 +178,8 @@ const ProductDetail = () => {
           </Button>
         </div>
       </div>
+
+      <ReviewsSection productId={product.id} />
 
       {showToast && (
         <Toast message={`${product.name} added with ${selectedColor} / ${selectedSize}`} type="success" onClose={() => setShowToast(false)} />
