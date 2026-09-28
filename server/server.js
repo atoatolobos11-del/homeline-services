@@ -57,6 +57,32 @@ const requireSupabase = (_req, res) => {
   return supabase
 }
 
+// Every route is mounted under /api, so visiting the bare domain (which is
+// what you get after deploying) would otherwise return "Cannot GET /".
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'Homeline API',
+    status: supabase ? 'ok' : 'degraded',
+    database: supabase ? 'supabase' : 'unconfigured',
+    health: '/api/health',
+    endpoints: [
+      'GET  /api/products',
+      'GET  /api/products/:id',
+      'GET  /api/categories',
+      'GET  /api/reviews',
+      'GET  /api/promos',
+      'GET  /api/inventory',
+      'GET  /api/inventory/movements',
+      'GET  /api/orders',
+      'POST /api/orders',
+      'POST /api/orders/cancel',
+      'POST /api/products',
+      'POST /api/newsletter',
+      'POST /api/contact',
+    ],
+  })
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, database: supabase ? 'supabase' : 'unconfigured' })
 })
