@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useShopData } from '../context/DataContext';
-import { ArrowLeft, CreditCard, Lock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Lock, CheckCircle, XCircle, Loader } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Toast from '../components/ui/Toast';
+import { cancelOrder } from '../utils/orders';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -16,6 +18,10 @@ const Checkout = () => {
   const [toastType, setToastType] = useState('success');
   const [orderNumber, setOrderNumber] = useState(null);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
   const [shippingMethod, setShippingMethod] = useState('standard');
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState('');
@@ -186,6 +192,25 @@ const Checkout = () => {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!orderNumber) return;
+    setCancelBusy(true);
+    setCancelError(null);
+    try {
+      await cancelOrder(orderNumber);
+      setCancelled(true);
+      setShowCancelConfirm(false);
+      setToastType('success');
+      setToastMessage(`Order ${orderNumber} has been cancelled. Stock was returned.`);
+      setShowToast(true);
+      refresh();
+    } catch (err) {
+      setCancelError(err.message);
+    } finally {
+      setCancelBusy(false);
+    }
+  };
+
   if (cartItems.length === 0 && !orderComplete) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center px-4">
@@ -205,13 +230,25 @@ const Checkout = () => {
       <div className="min-h-screen bg-cream flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 text-center">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-12 h-12 text-primary" />
+            {cancelled ? (
+              <XCircle className="w-12 h-12 text-red-500" />
+            ) : (
+              <CheckCircle className="w-12 h-12 text-primary" />
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-charcoal mb-3">Order Confirmed!</h1>
-          <p className="text-muted mb-2">Thank you for your purchase, {formData.firstName}!</p>
-          <p className="text-sm text-muted mb-6">
-            A confirmation email has been sent to {formData.email}
+          <h1 className="text-3xl font-bold text-charcoal mb-3">
+            {cancelled ? 'Order Cancelled' : 'Order Confirmed!'}
+          </h1>
+          <p className="text-muted mb-2">
+            {cancelled
+              ? `Order ${orderNumber} has been cancelled and the items were returned to stock.`
+              : `Thank you for your purchase, ${formData.firstName}!`}
           </p>
+          {!cancelled && (
+            <p className="text-sm text-muted mb-6">
+              A confirmation email has been sent to {formData.email}
+            </p>
+          )}
 
           {orderNumber && (
             <p className="mb-4 text-sm font-semibold tracking-wider text-primary">
@@ -224,15 +261,75 @@ const Checkout = () => {
             <p className="text-4xl font-bold text-primary">₱{totalAmount.toFixed(2)}</p>
           </div>
 
-          <Button 
-            variant="primary" 
-            size="lg" 
+          {!cancelled && (
+            <div className="mb-4 rounded-2xl border border-beige bg-cream p-4 text-left">
+              <p className="text-sm font-semibold text-charcoal mb-1">Changed your mind?</p>
+              <p className="text-xs text-muted mb-3">
+                You can cancel this order within 24 hours — stock will be returned automatically.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-red-300 text-red-600 hover:bg-red-600 hover:text-white"
+                onClick={() => {
+                  setCancelError(null);
+                  setShowCancelConfirm(true);
+                }}
+              >
+                Cancel this order
+              </Button>
+            </div>
+          )}
+
+          <Link
+            to={orderNumber ? `/order/${orderNumber}` : '/order'}
+            className="mb-4 block text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            View order details / Track order
+          </Link>
+
+          <Button
+            variant="primary"
+            size="lg"
             className="w-full"
             onClick={() => window.location.href = '/'}
           >
             Continue Shopping
           </Button>
         </div>
+
+        {/* Cancel confirmation modal */}
+        {showCancelConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/50 px-4">
+            <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
+                <XCircle className="h-7 w-7 text-red-500" />
+              </div>
+              <h2 className="text-xl font-bold text-charcoal">Cancel this order?</h2>
+              <p className="mt-2 text-sm text-muted">
+                Order <span className="font-semibold text-charcoal">{orderNumber}</span> will be
+                cancelled and the items will go back to stock. This cannot be undone.
+              </p>
+              {cancelError && (
+                <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{cancelError}</p>
+              )}
+              <div className="mt-6 flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setShowCancelConfirm(false)}>
+                  Keep order
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  onClick={handleCancelOrder}
+                  disabled={cancelBusy}
+                >
+                  {cancelBusy ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Yes, cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

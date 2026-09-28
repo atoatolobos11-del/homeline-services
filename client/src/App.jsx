@@ -13,6 +13,7 @@ import Profile from './pages/Profile'
 import Inventory from './pages/Inventory'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import OrderStatus from './pages/OrderStatus'
 import ProductDetail from './pages/ProductDetail'
 import HelpChatbot from './components/ui/HelpChatbot'
 
@@ -38,6 +39,8 @@ function AppLayout({ currentUser }) {
           <Route path="/inventory" element={currentUser ? <Inventory /> : <Navigate to="/login" replace />} />
           <Route path="/cart" element={currentUser ? <Cart /> : <Navigate to="/login" replace />} />
           <Route path="/checkout" element={currentUser ? <Checkout /> : <Navigate to="/login" replace />} />
+          <Route path="/order" element={currentUser ? <OrderStatus /> : <Navigate to="/login" replace />} />
+          <Route path="/order/:orderNumber" element={currentUser ? <OrderStatus /> : <Navigate to="/login" replace />} />
           <Route path="/product/:slug" element={currentUser ? <ProductDetail /> : <Navigate to="/login" replace />} />
         </Routes>
       </main>

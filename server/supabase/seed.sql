@@ -385,6 +385,62 @@ begin
   );
 end $$;
 
+-- Cancel an order placed within the last 24 hours: restores the stock of every
+-- item, logs an "adjustment" movement for each, and flips the order to cancelled.
+create or replace function public.cancel_order(p_order_number text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order     public.orders%rowtype;
+  v_item      record;
+  v_stock     integer;
+begin
+  if p_order_number is null or p_order_number = '' then
+    raise exception 'order number is required';
+  end if;
+
+  select * into v_order
+    from public.orders
+   where order_number = p_order_number
+   limit 1;
+
+  if not found then
+    raise exception 'order not found';
+  end if;
+
+  if v_order.status = 'cancelled' then
+    return jsonb_build_object('ok', false, 'message', 'This order is already cancelled.');
+  end if;
+
+  if v_order.created_at < now() - interval '24 hours' then
+    return jsonb_build_object('ok', false, 'message', 'The 24-hour cancellation window has already passed — please message us for help.');
+  end if;
+
+  for v_item in
+    select product_id, quantity
+      from public.order_items
+     where order_id = v_order.id
+  loop
+    update public.products
+       set stock = stock + v_item.quantity
+     where id = v_item.product_id
+     returning stock into v_stock;
+
+    insert into public.stock_movements (product_id, change_type, quantity, reason, stock_after)
+    values (v_item.product_id, 'adjustment', v_item.quantity,
+            'Order ' || v_order.order_number || ' cancelled', v_stock);
+  end loop;
+
+  update public.orders set status = 'cancelled' where id = v_order.id;
+
+  return jsonb_build_object('ok', true, 'order_number', v_order.order_number, 'status', 'cancelled');
+end $$;
+
+grant execute on function public.cancel_order(text) to anon, authenticated;
+
 -- Restock or adjust: applies a signed delta to stock and logs a movement.
 -- The whole call rolls back if the new balance would be negative.
 create or replace function public.adjust_stock(

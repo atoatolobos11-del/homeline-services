@@ -311,6 +311,80 @@ app.get('/api/orders', async (_req, res) => {
   res.json({ orders: rows, summary })
 })
 
+// Public order lookup by order number (for the Track / Cancel Order page).
+app.get('/api/orders/:orderNumber', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  const orderNumber = String(req.params.orderNumber || '').trim()
+  if (!orderNumber) {
+    res.status(400).json({ error: 'orderNumber is required' })
+    return
+  }
+  const { data: orders, error } = await client
+    .from('orders')
+    .select('*')
+    .eq('order_number', orderNumber)
+    .limit(1)
+  if (error) {
+    res.status(500).json({ error: error.message })
+    return
+  }
+  const order = orders?.[0]
+  if (!order) {
+    res.status(404).json({ error: 'Order not found — double-check the order number.' })
+    return
+  }
+  const { data: items, error: itemsError } = await client
+    .from('order_items')
+    .select('*')
+    .eq('order_id', order.id)
+    .order('id', { ascending: true })
+  if (itemsError) {
+    res.status(500).json({ error: itemsError.message })
+    return
+  }
+  res.json({
+    id: order.id,
+    orderNumber: order.order_number,
+    customerName: order.customer_name,
+    customerEmail: order.customer_email,
+    total: Number(order.total ?? 0),
+    status: order.status,
+    createdAt: order.created_at,
+    items: (items || []).map((item) => ({
+      id: item.id,
+      productId: item.product_id,
+      productName: item.product_name,
+      unitPrice: Number(item.unit_price),
+      costPrice: Number(item.cost_price),
+      quantity: item.quantity,
+      subtotal: Number(item.subtotal),
+      profit: Math.round((Number(item.unit_price) - Number(item.cost_price || 0)) * Number(item.quantity || 0) * 100) / 100,
+    })),
+  })
+})
+
+// Customer cancellation: restores stock and marks the order cancelled.
+app.post('/api/orders/cancel', async (req, res) => {
+  const client = requireSupabase(req, res)
+  if (!client) return
+  const orderNumber = typeof req.body?.orderNumber === 'string' ? req.body.orderNumber.trim() : ''
+  if (!orderNumber) {
+    res.status(400).json({ error: 'orderNumber is required' })
+    return
+  }
+  const result = await client.rpc('cancel_order', { p_order_number: orderNumber })
+  if (result.error) {
+    res.status(400).json({ error: result.error.message })
+    return
+  }
+  if (result.data?.ok === false) {
+    res.status(409).json({ error: result.data.message || 'This order cannot be cancelled.' })
+    return
+  }
+  res.json(result.data)
+})
+
 app.get('/api/categories', async (_req, res) => {
   const client = requireSupabase(_req, res)
   if (!client) return

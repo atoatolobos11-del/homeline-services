@@ -34,6 +34,7 @@ const Footer = () => {
       { name: 'Careers', href: '#' }
     ],
     help: [
+      { name: 'Track / Cancel Order', href: '/order' },
       { name: 'Contact', href: '#' },
       { name: 'Shipping', href: '#' },
       { name: 'Returns', href: '#' },
@@ -42,6 +43,7 @@ const Footer = () => {
   };
 
   const handleLinkClick = (e, href) => {
+    if (href.startsWith('/')) return; // real SPA route — let the browser handle navigation
     e.preventDefault();
     if (href === '#') {
       alert('This page is coming soon!');
