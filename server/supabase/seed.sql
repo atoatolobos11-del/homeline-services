@@ -78,10 +78,14 @@ create table if not exists public.order_items (
   product_id   text not null references public.products(id),
   product_name text not null,
   unit_price   numeric(10, 2) not null,
+  cost_price   numeric(10, 2),
   quantity     integer not null,
   subtotal     numeric(10, 2) not null,
   created_at   timestamptz not null default now()
 );
+
+-- Profit is frozen at sale time so later cost edits don't change past margins.
+alter table public.order_items add column if not exists cost_price numeric(10, 2);
 
 -- Audit trail for every stock change: why it changed and what the balance is.
 create table if not exists public.stock_movements (
@@ -358,12 +362,13 @@ begin
      where id = (v_item->>'id')
      returning stock into v_stock;
 
-    insert into public.order_items (order_id, product_id, product_name, unit_price, quantity, subtotal)
+    insert into public.order_items (order_id, product_id, product_name, unit_price, cost_price, quantity, subtotal)
     values (
       v_order_id,
       v_item->>'id',
       v_item->>'name',
       ((v_item->>'price')::numeric),
+      (select cost_price from public.products where id = (v_item->>'id')),
       ((v_item->>'quantity')::int),
       round(((v_item->>'price')::numeric * (v_item->>'quantity')::int), 2)
     );
@@ -417,3 +422,10 @@ begin
 
   return v_stock;
 end $$;
+
+-- Backfill cost on order items created before profit tracking existed.
+update public.order_items oi
+   set cost_price = p.cost_price
+  from public.products p
+ where oi.product_id = p.id
+   and oi.cost_price is null;

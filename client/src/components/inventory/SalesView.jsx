@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ShoppingBag, TrendingUp, CalendarDays, PackageOpen, ChevronDown, Loader } from 'lucide-react';
 import { formatPeso, formatDateTime } from '../../utils/stock';
-import { RevenueBarChart, TopProductsChart } from './SalesCharts';
+import { SalesTrendChart, TopProductsChart } from './SalesCharts';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -91,7 +91,7 @@ const SalesView = () => {
 
       {/* Sales charts */}
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <RevenueBarChart orders={orders} />
+        <SalesTrendChart orders={orders} />
         <TopProductsChart orders={orders} />
       </div>
 

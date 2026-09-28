@@ -300,8 +300,10 @@ app.get('/api/orders', async (_req, res) => {
         productId: item.product_id,
         productName: item.product_name,
         unitPrice: Number(item.unit_price),
+        costPrice: Number(item.cost_price),
         quantity: item.quantity,
         subtotal: Number(item.subtotal),
+        profit: Math.round((Number(item.unit_price) - Number(item.cost_price || 0)) * Number(item.quantity || 0) * 100) / 100,
       })),
     }
   })
