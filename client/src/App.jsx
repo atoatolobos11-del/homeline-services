@@ -71,23 +71,24 @@ function AppLayout({ currentUser }) {
       <Header />
       <main className="flex-grow">
         <Routes>
-          {/* Whole app requires login — logged-out visitors (including new
-              users) are sent to /login first, then returned to where they headed. */}
-          <Route path="/" element={currentUser ? <Home /> : loginRedirect} />
+          {/* Browse-public storefront: Home, About, and shop browsing open
+              without login. Cart, checkout, orders, and profile redirect
+              to /login first, then return after login. */}
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/catalog" element={currentUser ? <Catalog /> : loginRedirect} />
-          <Route path="/shop" element={currentUser ? <Shop /> : loginRedirect} />
-          <Route path="/bestsellers" element={currentUser ? <BestsellersPage /> : loginRedirect} />
-          <Route path="/categories" element={currentUser ? <CategoriesPage /> : loginRedirect} />
-          <Route path="/about" element={currentUser ? <AboutPage /> : loginRedirect} />
-          <Route path="/sustainability" element={currentUser ? <SustainabilityPage /> : loginRedirect} />
-          <Route path="/journal" element={currentUser ? <JournalPage /> : loginRedirect} />
-          <Route path="/careers" element={currentUser ? <CareersPage /> : loginRedirect} />
-          <Route path="/contact" element={currentUser ? <ContactPage /> : loginRedirect} />
-          <Route path="/shipping" element={currentUser ? <ShippingPage /> : loginRedirect} />
-          <Route path="/returns" element={currentUser ? <ReturnsPage /> : loginRedirect} />
-          <Route path="/faq" element={currentUser ? <FaqPage /> : loginRedirect} />
-          <Route path="/product/:slug" element={currentUser ? <ProductDetail /> : loginRedirect} />
+          <Route path="/catalog" element={<Catalog />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/bestsellers" element={<BestsellersPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/sustainability" element={<SustainabilityPage />} />
+          <Route path="/journal" element={<JournalPage />} />
+          <Route path="/careers" element={<CareersPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/shipping" element={<ShippingPage />} />
+          <Route path="/returns" element={<ReturnsPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/product/:slug" element={<ProductDetail />} />
           <Route path="/profile" element={currentUser ? <Profile /> : loginRedirect} />
           <Route
             path="/inventory"
@@ -97,12 +98,12 @@ function AppLayout({ currentUser }) {
           <Route path="/checkout" element={currentUser ? <Checkout /> : loginRedirect} />
           <Route path="/order" element={currentUser ? <OrderStatus /> : loginRedirect} />
           <Route path="/order/:orderNumber" element={currentUser ? <OrderStatus /> : loginRedirect} />
-          <Route path="*" element={currentUser ? <Navigate to="/" replace /> : loginRedirect} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <ScrollToTop />
       <Footer />
-      {currentUser ? <HelpChatbot /> : null}
+      <HelpChatbot />
     </div>
   );
 }

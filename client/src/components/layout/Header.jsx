@@ -114,7 +114,7 @@ const Header = () => {
   const confirmLogout = async () => {
     setShowLogoutConfirm(false);
     await signOutUser();
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -135,9 +135,7 @@ const Header = () => {
             </a>
           </div>
 
-          {/* Desktop Navigation — hidden when logged out so the storefront
-              can't be reached without login */}
-          {currentUser && (
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex shrink-0 items-center gap-8">
             {navLinks.map((link) => {
               const isActive = getActiveSection(link.href);
@@ -158,10 +156,8 @@ const Header = () => {
               );
             })}
           </nav>
-          )}
 
-          {/* Search Bar - Desktop — login required, hidden when logged out */}
-          {currentUser && (
+          {/* Search Bar - Desktop */}
           <div className="hidden lg:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full" ref={searchRef}>
               <input
@@ -253,12 +249,10 @@ const Header = () => {
               )}
             </div>
           </div>
-          )}
 
           {/* Icons */}
           <div className="flex items-center space-x-4">
-            {/* Search Icon - Mobile — login required */}
-            {currentUser && (
+            {/* Search Icon - Mobile */}
             <button 
               className="lg:hidden p-2 hover:bg-beige rounded-full transition-colors"
               aria-label="Search"
@@ -266,7 +260,6 @@ const Header = () => {
             >
               <Search className="w-5 h-5 text-charcoal" />
             </button>
-            )}
 
             {currentUser ? (
               <>
@@ -297,8 +290,7 @@ const Header = () => {
               </button>
             )}
 
-            {/* Cart Icon — login required */}
-            {currentUser && (
+            {/* Cart Icon */}
             <button 
               className="relative p-2 hover:bg-beige rounded-full transition-colors"
               aria-label="Shopping bag"
@@ -311,7 +303,6 @@ const Header = () => {
                 </span>
               )}
             </button>
-            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -328,11 +319,11 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Menu — shop links hidden when logged out */}
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-beige">
             <nav className="flex flex-col space-y-4">
-              {currentUser && navLinks.map((link) => {
+              {navLinks.map((link) => {
                 const isActive = getActiveSection(link.href);
                 return (
                   <a
@@ -381,8 +372,8 @@ const Header = () => {
         )}
       </div>
 
-      {/* Cart Sidebar — login required */}
-      {currentUser && <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} />}
+      {/* Cart Sidebar */}
+      <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <ConfirmDialog
         open={showLogoutConfirm}
