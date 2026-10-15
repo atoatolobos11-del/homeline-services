@@ -258,7 +258,7 @@ const Header = () => {
               <Search className="w-5 h-5 text-charcoal" />
             </button>
 
-            {currentUser && (
+            {currentUser ? (
               <>
                 <button
                   type="button"
@@ -277,6 +277,14 @@ const Header = () => {
                   Log out
                 </button>
               </>
+            ) : (
+              <button
+                className="hidden md:block p-2 hover:bg-beige rounded-full transition-colors"
+                aria-label="Account"
+                onClick={() => navigate('/login')}
+              >
+                <User className="w-5 h-5 text-charcoal" />
+              </button>
             )}
 
             {/* Cart Icon */}
@@ -330,7 +338,7 @@ const Header = () => {
                   </a>
                 );
               })}
-              {currentUser && (
+              {currentUser ? (
                 <>
                   <button
                     type="button"
@@ -347,6 +355,14 @@ const Header = () => {
                     Log out
                   </button>
                 </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
+                  className="border-l-4 border-transparent py-2 pl-3 text-left font-semibold text-primary"
+                >
+                  Log in / Register
+                </button>
               )}
             </nav>
           </div>

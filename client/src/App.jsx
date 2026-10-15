@@ -4,6 +4,7 @@ import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import { AUTH_EVENT, getCurrentUser, isAuthReady } from './utils/auth'
 import Home from './pages/Home'
+import Login from './pages/Login'
 import Shop from './pages/Shop'
 import Catalog from './pages/Catalog'
 import BestsellersPage from './pages/BestsellersPage'
@@ -44,10 +45,10 @@ function ScrollToTop() {
 function AppLayout({ currentUser }) {
   const location = useLocation();
   const [authLoaded, setAuthLoaded] = useState(isAuthReady());
-  // No login page exists (accounts were removed for a fresh restart), so
-  // visitors hitting account-only routes are sent home.
+  // Remember where a logged-out visitor was headed so login can send them
+  // back instead of dropping them on a fixed page.
   const loginRedirect = (
-    <Navigate to="/" replace />
+    <Navigate to="/login" replace state={{ from: location.pathname }} />
   );
 
   useEffect(() => {
@@ -74,8 +75,10 @@ function AppLayout({ currentUser }) {
             path="/"
             element={<Home />}
           />
+          <Route path="/login" element={<Login />} />
           {/* Storefront browsing is public — anyone can view products without an
-              account. */}
+              account. Login is only required for personal data (profile),
+              checkout, and the admin dashboard. */}
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/bestsellers" element={<BestsellersPage />} />
