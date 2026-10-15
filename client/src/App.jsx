@@ -4,7 +4,6 @@ import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import { AUTH_EVENT, getCurrentUser, isAuthReady } from './utils/auth'
 import Home from './pages/Home'
-import Login from './pages/Login'
 import Shop from './pages/Shop'
 import Catalog from './pages/Catalog'
 import BestsellersPage from './pages/BestsellersPage'
@@ -45,10 +44,10 @@ function ScrollToTop() {
 function AppLayout({ currentUser }) {
   const location = useLocation();
   const [authLoaded, setAuthLoaded] = useState(isAuthReady());
-  // Remember where a logged-out visitor was headed so login can send them
-  // back instead of dropping them on a fixed page.
+  // No login page exists (accounts were removed for a fresh restart), so
+  // visitors hitting account-only routes are sent home.
   const loginRedirect = (
-    <Navigate to="/login" replace state={{ from: location.pathname }} />
+    <Navigate to="/" replace />
   );
 
   useEffect(() => {
@@ -58,7 +57,7 @@ function AppLayout({ currentUser }) {
   }, []);
 
   // The persisted session loads asynchronously — hold the splash screen until
-  // then so protected routes don't flash-redirect to /login on refresh.
+  // then so protected routes don't flash-redirect on refresh.
   if (!authLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream">
@@ -75,11 +74,8 @@ function AppLayout({ currentUser }) {
             path="/"
             element={<Home />}
           />
-          <Route path="/login" element={<Login />} />
           {/* Storefront browsing is public — anyone can view products without an
-              account. Login is only required for personal data (profile),
-              checkout, and the admin dashboard. Gating /shop etc. behind login
-              made the catalog look empty for logged-out visitors. */}
+              account. */}
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/bestsellers" element={<BestsellersPage />} />

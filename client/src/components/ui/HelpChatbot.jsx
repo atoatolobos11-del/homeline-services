@@ -78,12 +78,12 @@ const topics = [
   {
     id: 'checkout',
     keywords: ['checkout', 'place order', 'shopping bag', 'my cart', 'check out', 'pay for'],
-    answer: `To place an order:\n\n1. Add items to your shopping bag.\n2. Click the bag icon → Checkout.\n3. You'll need to be signed in.\n4. Choose shipping, gift wrap, promo code, and payment.\n5. Review and confirm — you'll get an order number right away.\n\nKeep your order number — that's how you track or cancel your order.`
+    answer: `To place an order:\n\n1. Add items to your shopping bag.\n2. Click the bag icon → Checkout.\n3. Choose shipping, gift wrap, promo code, and payment.\n4. Review and confirm — you'll get an order number right away.\n\nKeep your order number — that's how you track or cancel your order.`
   },
   {
     id: 'login',
     keywords: ['login', 'log in', 'sign in', 'sign up', 'register', 'account', 'password', 'forgot', 'profile'],
-    answer: `Create or log into your account from the Login page.\n\nImportant tip: use the SAME email at checkout and login — that's how your orders appear in your Profile under "My Orders".`
+    answer: `This shop is guest-friendly — no account needed. Just shop, check out, and keep your order number (HML-...) to track or cancel your order.`
   },
   {
     id: 'contact',
