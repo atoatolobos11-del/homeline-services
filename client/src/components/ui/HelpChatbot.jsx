@@ -133,7 +133,12 @@ const formatOrderDate = (date) =>
 
 // ---------- Reply engine ----------
 
-const extractOrderNumber = (text) => (text.match(ORDER_RE) || [])[0] || null;
+// Order numbers are stored uppercase; the server also normalizes, but uppercasing
+// here keeps the captured value consistent with what the user sees.
+const extractOrderNumber = (text) => {
+  const match = (text.match(ORDER_RE) || [])[0];
+  return match ? match.toUpperCase() : null;
+};
 
 const lookupOrder = async (orderNumber) => {
   let res;

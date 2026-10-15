@@ -1,9 +1,14 @@
 # 🧪 Homeline E-Commerce — E2E Smoke Test Report
 
-**Date:** 2026-09-28
-**Commit:** `8ca361d` — Add system architecture diagram (docs/system-architecture.html)
-**Scope:** API + database end-to-end (live Supabase project)
-**Result:** ✅ **PASSED** — 45 checks, 0 failures, 2 findings
+**Date:** 2026-10-01
+**Commit:** `9dafc6d` — Fix: Inventory now admin-only (admin@homeline.ph)
+**Scope:** API + database end-to-end, live Supabase project
+**Result:** ✅ **PASSED** — 78 checks, 0 failures
+
+> This report covers two passes on 2026-10-01: the discovery run that found the
+> bugs, and the verification run after fixing them. All four findings below are
+> closed. One earlier problem turned out to be bigger than first reported —
+> `costPrice` was leaking through the *public* products route, not just inventory.
 
 ---
 
@@ -13,257 +18,232 @@
 | --------- | ------ | ------ |
 | API server | `node server/server.js` → `localhost:5000` | ✅ Running |
 | Client dev server | `vite` → `localhost:3000` | ✅ Running |
-| Database | Supabase (Postgres) — live project, not a mock | ✅ Connected |
+| Database | Supabase (Postgres) — live project | ✅ Connected |
 | `/api/health` | `{"ok":true,"database":"supabase"}` | ✅ |
-| Products loaded | 24 | ✅ |
-| Categories loaded | 7 | ✅ |
-
-Both servers were **already running** in this environment before the test. No code was
-changed during this test.
+| Products / Categories / Reviews | 24 / 7 / 16 | ✅ |
+| `npm run build` | 1632 modules, ~32s, no warnings | ✅ |
 
 ---
 
-## 2. What Was Tested
+## 2. Results
 
-### 2.1 Full order lifecycle — PASS ✅
+### 2.1 Anonymous access to admin routes — PASS ✅ (8/8)
 
-The most important path in the app: create an order, move stock, track it, cancel it,
-and confirm stock returns. Self-cleaning — stock was restored to its original value.
+The whole point of the fix. Every one of these returned `200` with live data before,
+and now returns `401`:
 
-| Step | Action | Expected | Actual |
-| ---- | ------ | -------- | ------ |
-| 1 | Read stock before | bamboo-04 = 15, mug-set-09 = 10 | ✅ 15, 10 |
-| 2 | `POST /api/orders` (bamboo ×2, mug ×1, total 697) | `201` | ✅ `201` → `HML-20260928-1005`, `order_id: 6` |
-| 3 | Read stock after | 13, 9 (decremented) | ✅ 13, 9 |
-| 4 | `GET /api/orders/HML-20260928-1005` | `200` + line items | ✅ `200`, items + unit/cost price + profit |
-| 5 | Read stock before cancel | 13, 9 | ✅ 13, 9 |
-| 6 | `POST /api/orders/cancel` | `200` | ✅ `200`, `status: cancelled` |
-| 7 | Read stock after cancel | 15, 10 (restored) | ✅ 15, 10 |
-| 8 | `POST /api/orders/cancel` again | `409` rejected | ✅ `409` "This order is already cancelled." |
-| 9 | Re-track the order | `status: cancelled` | ✅ cancelled |
+| Route | Before | Now |
+| ----- | ------ | --- |
+| `GET /api/inventory` | `200` + cost prices | `401` |
+| `GET /api/orders` | `200` + customer PII | `401` |
+| `GET /api/inventory/movements` | `200` + audit log | `401` |
+| `PATCH /api/inventory/:id` | `200` | `401` |
+| `POST /api/inventory/restock` | `200` | `401` |
+| `POST /api/products` | `201` | `401` |
+| `PATCH /api/products/:id` | `200` | `401` |
+| `PATCH /api/promos/:id` | `200` | `401` |
 
-Stock math verified end to end, including the atomic DB transaction behind
-`record_order` / `cancel_order`.
+### 2.2 Cost prices no longer reach the public — PASS ✅
 
-### 2.2 Read endpoints — PASS ✅
+| Route | Before | Now |
+| ----- | ------ | --- |
+| `GET /api/products` | `costPrice` on all 24 | omitted |
+| `GET /api/products/:id` | `costPrice` | omitted |
+| `GET /api/orders/:orderNumber` | `costPrice` + `profit` per line | omitted |
+| `GET /api/inventory` (admin) | `costPrice` | `costPrice` (unchanged, now gated) |
 
-| Endpoint | Expected | Actual |
-| -------- | -------- | ------ |
-| `GET /api/health` | `200` | ✅ `200` |
-| `GET /api/products` | `200` + 24 rows | ✅ 24 |
-| `GET /api/products/:id` (`eco-bottle-01`) | `200` | ✅ `200` |
-| `GET /api/products/:id` (unknown) | `404` | ✅ `404` "Product not found" |
-| `GET /api/categories` | `200` + 7 rows | ✅ 7 |
-| `GET /api/inventory` | `200` | ✅ 24 |
-| `GET /api/inventory/movements` | `200` | ✅ 4 rows, joined product name + image |
-| `GET /api/orders` | `200` + summary | ✅ orders + revenue/itemsSold/today/week |
-| `GET /api/orders/:orderNumber` | `200` | ✅ `200` |
-| `GET /api/orders/:orderNumber` (unknown) | `404` | ✅ `404` with helpful message |
-| `GET /api/reviews` | `200` | ✅ 16 |
-| `GET /api/promos` | `200` | ✅ 4 |
+This one mattered more than the original write-up suggested: `mapProduct` was
+serialising `cost_price` for *every* product response, so supplier margins were
+public even to someone who never touched `/api/inventory`.
 
-snake_case → camelCase mapping in `mapProduct` confirmed correct for every field
-(`best_seller`→`bestSeller`, `reorder_level`→`reorderLevel`, `cost_price`→`costPrice`, etc.).
+### 2.3 Public routes still work — PASS ✅ (6/6)
 
-### 2.3 Validation and error paths — PASS ✅ (16/16)
+`/api/health`, `/api/products`, `/api/categories`, `/api/reviews`, `/api/promos`,
+and order tracking are all still reachable with no credentials. Nothing regressed
+into over-restriction.
 
-| Request | Expected | Actual |
-| ------- | -------- | ------ |
-| `POST /orders` blank name | `400` | ✅ "customerName is required" |
-| `POST /orders` empty items | `400` | ✅ "items must be a non-empty array" |
-| `POST /orders` quantity `0` | `400` | ✅ rejected |
-| `POST /orders` quantity `1.5` | `400` | ✅ rejected (not an integer) |
-| `POST /orders` negative price | `400` | ✅ rejected |
-| `POST /orders` out-of-stock item | `409` | ✅ + `insufficient: ["canister-07"]` |
-| `POST /orders` quantity `9999` | `409` | ✅ + `insufficient: ["bamboo-04"]` |
-| `POST /reviews` no productId | `400` | ✅ |
-| `POST /reviews` no customerName | `400` | ✅ |
-| `POST /reviews` rating `9` | `400` | ✅ "whole number from 1 to 5" |
-| `POST /reviews` rating `0` | `400` | ✅ rejected |
-| `POST /promos` no code | `400` | ✅ |
-| `POST /promos` negative value | `400` | ✅ |
-| `POST /promos` invalid expiry date | `400` | ✅ "not a valid date" |
-| `POST /newsletter` no email | `400` | ✅ |
-| `POST /contact` missing fields | `400` | ✅ |
-
-**Verified that the two `409` stock-conflict attempts created no phantom orders** —
-order count stayed at 3.
-
-### 2.4 Inventory write paths — PASS ✅
-
-| Request | Expected | Actual |
-| ------- | -------- | ------ |
-| `PATCH /inventory/:id` stock `-1` | `400` | ✅ |
-| `PATCH /inventory/:id` stock `2.5` | `400` | ✅ |
-| `PATCH /inventory/:id` unknown product | `404` | ✅ |
-| `POST /inventory/restock` quantity `0` | `400` | ✅ |
-| `POST /inventory/restock` +2 | `200`, stock 15→17 | ✅ `200`, `delta: 2` |
-| `PATCH /inventory/:id` back to 15 | `200`, stock 17→15 | ✅ `delta: -2` |
-| `PATCH /inventory/:id` same value (15) | no-op | ✅ `unchanged: true` |
-
-Stock restored to its original value — net zero.
-
-### 2.5 Frontend build, proxy, and assets — PASS ✅
+### 2.4 Admin authentication — PASS ✅ (17/17)
 
 | Check | Result |
 | ----- | ------ |
-| `GET http://localhost:3000/` serves app, mounts `#root` | ✅ `200`, 985 bytes |
-| Vite `/api` proxy → backend (health) | ✅ `200 {"ok":true,...}` |
-| Vite `/api` proxy → backend (products) | ✅ `200`, 12,387 bytes |
-| `npm run build` (production) | ✅ clean — 1630 modules, 7.29s |
-| Bundle size | `index.js` 420.87 kB (112.65 kB gzip), CSS 47.86 kB (8.41 kB gzip) |
-| All product + category images reachable | ✅ **31/31** (Pexels + Unsplash) |
+| `POST /api/admin/session` correct credentials | `200`, signed 8h token |
+| Wrong password / wrong email | `401`, identical message (no user enumeration) |
+| Token is not the password | ✅ |
+| Bearer token → `/api/inventory` | `200`, includes `costPrice` |
+| Bearer token → `/api/orders` | `200` |
+| Bearer token → `/api/admin/session` | `200`, verifies |
+| Garbage / empty / wrong-scheme / tampered-signature tokens | all `401` |
+| `X-Admin-Secret` correct → access | `200` |
+| `X-Admin-Secret` wrong | `401` |
+| Login rate limit | `429` after 8 attempts per IP / 15 min |
+
+### 2.5 Promo visibility split — PASS ✅
+
+Anonymous callers get only active, unexpired codes. An admin sees drafts and
+disabled codes too, so the dashboard can still manage them. Verified both
+directions, including that a newly deactivated code immediately disappears from
+the public list.
+
+### 2.6 Order lifecycle — PASS ✅ (unchanged behaviour, self-cleaning)
+
+| Step | Expected | Actual |
+| ---- | -------- | ------ |
+| Baseline stock | bamboo-04 = 15, mug-set-09 = 10 | ✅ 15, 10 |
+| `POST /api/orders` | `201`, total 697 | ✅ `201` → `HML-20261001-1012`, `orderId: 13` |
+| Stock after create | 13, 9 | ✅ 13, 9 |
+| Cancel (lowercase order number) | `200` | ✅ `200` |
+| Stock after cancel | 15, 10 restored | ✅ 15, 10 |
+| Double cancel | `409` | ✅ |
+
+Stock math is still correct end to end, and net stock change is zero.
+
+### 2.7 Response casing — PASS ✅
+
+| Endpoint | Keys |
+| -------- | ---- |
+| `POST /api/orders` | `ok, total, orderId, orderNumber` |
+| `POST /api/orders/cancel` | `ok, status, orderNumber` |
+
+No snake_case in any response body.
+
+### 2.8 Case-insensitive order lookup — PASS ✅
+
+`HML-20260928-1003`, `hml-20260928-1003`, and `Hml-20260928-1003` all return `200`.
+
+### 2.9 Email validation — PASS ✅ (12/12)
+
+| Input | Result |
+| ----- | ------ |
+| `not-an-email`, `plainstring`, `a@b`, `smoke@@example.com` | `400` |
+| empty, `a b@c.com`, `@example.com`, `user@` | `400` |
+| `real.address+tag<ts>@example.co.uk`, `user_name<ts>@example.io` | `201` |
+| duplicate subscribe | `409` |
+| `POST /api/contact` with malformed email | `400` |
+
+Legitimate addresses with `+` tags, underscores, and multi-part TLDs still pass.
+
+### 2.10 Customer order history — PASS ✅
+
+`POST /api/orders/by-email` returns only orders matching the submitted email,
+verified against a real seed order (`atoatolobos11@gmail.com` → 1 order), returns
+empty for an unknown email, and never includes `costPrice` or `profit`.
+
+### 2.11 Admin write paths — PASS ✅
+
+Restock `+2` → delta 2, restore → delta -2, stock back to baseline. Promo create
+`201` with a token, `401` without. Duplicate promo code `400`. Deactivate `200`.
+
+### 2.12 Build — PASS ✅
+
+1632 modules, `index.js` 424.33 kB (113.55 kB gzip), CSS 47.94 kB (8.42 kB gzip).
 
 ---
 
-## 3. Findings
+## 3. What changed
 
-### 🔴 Finding 1 — Chatbot order lookup is case-sensitive (bug)
+### Finding 1 — every data endpoint was world-readable → FIXED
 
-**Severity:** Low (UX only, no data risk)
-**File:** `client/src/components/ui/HelpChatbot.jsx:7, 136, 138`
+**Server:** added `checkAdmin()` / `isAdminRequest()` guarding all eight sensitive
+routes. Two auth paths: an HMAC-signed session token from `POST /api/admin/session`
+(password check, 8h expiry), or `X-Admin-Secret` for scripts. A real Supabase
+access token is also accepted and revalidated with `auth.getUser()`. Secret
+comparison is constant-time via `crypto.timingSafeEqual`.
 
-The order-number regex is case-insensitive, but the value it captures is passed straight
-to an exact-match database query:
+**Client:** new `components/inventory/AdminGate.jsx` prompts for the admin password
+and stores the token; `utils/api.js` attaches it to every admin call and clears it
+on `401`. The old `localStorage.email === 'admin@homeline.ph'` checks in `App.jsx`,
+`Inventory.jsx`, and `Header.jsx` are gone — they were the vulnerability's disguise,
+not a defence.
 
-```js
-const ORDER_RE = /HML-\d{8}-\d{4}/i;          // line 7  — matches "hml-2026..."
-const extractOrderNumber = (text) => (text.match(ORDER_RE) || [])[0] || null;  // line 136
-const lookupOrder = async (orderNumber) => {
-  res = await fetch(`${apiBase}/orders/${encodeURIComponent(orderNumber)}`);     // line 141
-```
+Both auth modes default to **denying** when unconfigured, so a fresh checkout can't
+come up wide open.
 
-The server does a case-sensitive `.eq('order_number', orderNumber)` (`server.js:326`).
+### Finding 2 — newsletter accepted malformed emails → FIXED
 
-**Reproduced:**
-```
-GET /api/orders/HML-20260928-1005  →  200
-GET /api/orders/hml-20260928-1005  →  404
-```
+Added `EMAIL_RE` and applied it to `/api/newsletter` and `/api/contact`. Also fixed
+two client bugs found along the way: the newsletter form claimed success on
+*every* response (`CommunityCTA.jsx`) and the About contact form reported success
+even when the server rejected the submission (`About.jsx`).
 
-A user typing `hml-20260928-1005` into the chatbot gets *"I couldn't find an order"* for an
-order that exists.
+### Finding 3 — case-sensitive order lookup → FIXED
 
-The Track / Cancel Order page does **not** have this bug — `OrderStatus.jsx:25` normalizes
-with `.trim().toUpperCase()` before the request.
+`.trim().toUpperCase()` on both the lookup and cancel routes. `HelpChatbot.jsx` also
+uppercases its regex capture, so the chatbot's case-insensitive match no longer
+produces a 404 for an order that exists.
 
-**Fix:** uppercase in `extractOrderNumber`, and/or normalize server-side in the
-`orderNumber` route so every client benefits:
-```js
-const orderNumber = String(req.params.orderNumber || '').trim().toUpperCase()
-```
+### Finding 4 — snake_case on order writes → FIXED
 
-### 🟡 Finding 2 — Inconsistent response casing on order creation (fragile)
+`POST /api/orders` and `POST /api/orders/cancel` now normalise the RPC result to
+camelCase before responding. `Checkout.jsx` updated to read `orderNumber`.
 
-**Severity:** Low (currently not broken)
+### Additional: cost prices were public → FIXED
 
-`POST /api/orders` is the only endpoint that returns snake_case in its body:
-
-```json
-{ "ok": true, "total": 697, "order_id": 6, "order_number": "HML-20260928-1005" }
-```
-
-Every other endpoint returns camelCase (`orderNumber`, `productId`, `unitPrice`…). The
-client reads the snake_case field correctly at `Checkout.jsx:206`, so this works today —
-but it is a trap for the next change, and it is what caused a false 404 during this very
-test run (the probe read `orderNumber` off a response that only had `order_number`).
-
-**Fix:** normalize the RPC result in `server.js` before responding:
-```js
-res.status(201).json({
-  ok: true,
-  total: result.data.total,
-  orderId: result.data.order_id,
-  orderNumber: result.data.order_number,
-})
-```
-and update the two reads in `Checkout.jsx:206,209`.
+`mapProduct` took a `{ includeCost }` flag. Only admin routes pass it. The public
+tracking route and the customer history endpoint also stopped emitting `profit`,
+which is derived from cost.
 
 ---
 
-## 4. Non-blocking observations
+## 4. Not covered
 
-**Auth is not real authentication.** `Login.jsx` stores **plaintext passwords** in
-`localStorage` under `homelineUsers`, and `App.jsx` gates every route on the presence of a
-`homelineCurrentUser` key. Any user can set that key in devtools and reach `/inventory`
-(cost prices, sales figures, customer emails) or `/profile` (order history) with no
-credentials. Acceptable for a portfolio demo, but it must never be presented as handling
-real customer data.
+The **browser-driven UI walkthrough did not run** — no desktop browser is connected
+to this session (`browser.disconnected`). The admin sign-in form, the dashboard
+tabs, cart interactions, and checkout UI are therefore verified only at the API
+layer. Worth retesting once a browser is attached:
 
-**`README.md` is significantly out of date.** It still describes:
-- a backend that "uses local JSON data" — the API is now Supabase-only, with no fallback
-- no auth, no orders, no inventory dashboard, no reviews, no promo codes, no chatbot
-- a 5-endpoint API list — there are 20+ routes
-- "Future Enhancements" including product detail pages, search, and category filtering,
-  all of which already ship
+- `/inventory` gate: sign-out shows the form, wrong password is rejected, correct
+  password loads the dashboard, sign-out clears the token
+- Header showing/hiding the Inventory link based on session
+- Profile page loading order history through the new endpoint
+- Cart, checkout, and promo-code application in the UI
+- Console errors and failed requests during navigation
 
-**`client/.env` is not committed** (only `.env.example`). Local dev works via the Vite
-`/api` proxy, but a Vercel or Render deploy renders a storefront with **zero products** and
-no error unless `VITE_API_URL` is set — `vercel.json` only rewrites everything to
-`index.html`, with no `/api` route.
-
-**Order numbers leak daily volume.** `HML-20260928-1005` encodes both the date and a
-per-day sequence, so any customer can infer how many orders were placed that day and
-brute-force nearby numbers. Minor, but a sequential-only format would be safer.
+Also unverified: Supabase RLS. The anon key can still `SELECT` from `orders` and
+`INSERT` into `newsletter_subscribers` / `contact_messages` / `promo_codes` at the
+REST layer, bypassing the API entirely. Application-level auth is now correct, but
+policies should be tightened too — see the README's Future Enhancements.
 
 ---
 
 ## 5. Test data left behind
 
-Stock levels are back to their original values. The following audit records remain, which
-is correct behavior — `stock_movements` is an append-only log by design:
+Stock is back to its original values (`bamboo-04` = 15, `mug-set-09` = 10).
 
-- Order `HML-20260928-1005` — customer `E2E Smoke Test <e2e-smoke@homeline.ph>`, status
-  `cancelled`, total ₱697
-- Movement rows for the sale, the cancellation, and the restock/restore pair on
-  `bamboo-04` (reasons `E2E smoke test restock` / `E2E smoke test cleanup`)
+| Artifact | Detail |
+| -------- | ------ |
+| Orders `HML-20261001-1006` … `-1012` | `E2E Smoke Test <e2e-smoke@homeline.ph>`, all `cancelled`, ₱697 |
+| `stock_movements` | grew from 4 → ~40 rows (sale/cancel/restock/cleanup pairs) |
+| Promo codes | `SMOKETMP1`, `SMOKETMP2`, `SMK<timestamp>` ×4 — all created then deactivated, so hidden from the public list |
+| Newsletter | 4 malformed addresses from the discovery run, plus valid `user_name<ts>@example.io` addresses |
 
-The app has no delete-order or purge-movement endpoint, so these were removed by
-cancelling rather than deleting. Delete them directly in Supabase if a clean dataset
-matters.
-
----
-
-## 6. Not covered
-
-The **browser-driven UI walkthrough did not run** — no desktop browser was connected to
-this session, and the browser tool is an opt-in experimental feature. The following are
-therefore **unverified** and should be retested once a browser is attached:
-
-- Rendered pages: Home, Shop, Catalog, Categories, Bestsellers, product detail, Profile,
-  About / Sustainability / Journal / Careers / Contact / Shipping / Returns / FAQ
-- Register → login flow and the auth redirect behavior
-- Cart interactions: add, quantity/color/variant editing, stock capping, and
-  localStorage persistence across a reload
-- Checkout UI end to end (the underlying API order flow *was* verified — see 2.1)
-- Track / Cancel Order page UI, including lowercase input
-- Inventory dashboard tabs: Sales, Activity, Customers, Promos, sales charts, CSV/print
-- Help chatbot: quick replies, live order lookup, typing indicator, handoff
-- Console errors, React warnings, and failed network requests during navigation
-
-Two smaller items also unverified: the `POST` happy paths for newsletter subscribe and
-contact submit (only their `400` validation branches were exercised, to avoid writing junk
-rows into the live database), and promo-code enable/disable via `PATCH /api/promos/:id`.
+RLS blocks `DELETE` with the anon key, so none of this can be cleaned up
+programmatically. Remove it in the Supabase dashboard if a clean dataset matters.
+`stock_movements` is append-only by design, so those rows are expected residue.
 
 ---
 
-## 7. How to re-run
+## 6. How to re-run
 
 ```bash
-# 1. backend
-cd server
-cp .env.example .env        # then set SUPABASE_URL and SUPABASE_ANON_KEY
-npm install && npm start    # :5000
-
-# 2. frontend
-cd client
-npm install
-npm run dev                 # :3000
+cd server && npm install && npm start    # :5000
+cd client && npm install && npm run dev  # :3000
 ```
 
-Then confirm:
+Then:
 
 ```bash
 curl http://localhost:5000/api/health
-# {"ok":true,"database":"supabase"}
+curl http://localhost:3000/api/health
+
+# the finding this whole change set was about
+curl -i localhost:5000/api/inventory    # expect 401, was 200
+curl -i localhost:5000/api/orders       # expect 401, was 200
 ```
+
+Note for the admin dashboard: `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` must be
+set in `server/.env` or sign-in returns `503` by design. Generate with
+`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+
+The verification harness is an ad hoc Node script using only `fetch`. Worth
+committing as `tests/smoke.mjs` — and a Playwright suite for the UI layer the
+browser gap keeps leaving open.

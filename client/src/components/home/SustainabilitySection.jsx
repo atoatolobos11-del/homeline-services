@@ -1,4 +1,5 @@
 import { Leaf, Recycle, Heart, Sprout } from 'lucide-react';
+import Img from '../ui/Img';
 
 const SustainabilitySection = () => {
   const cards = [
@@ -41,10 +42,14 @@ const SustainabilitySection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {/* Large Featured Image */}
           <div className="lg:col-span-2 rounded-3xl overflow-hidden bg-gradient-to-br from-secondary to-accent aspect-[16/9] lg:aspect-[16/10]">
-            <img 
-              src="https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?w=1200&h=700&fit=crop&q=80" 
+            <Img
+              src="https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?w=1200&h=700&fit=crop&q=80"
               alt="Sustainable living and natural materials"
-              className="w-full h-full object-cover"
+              width={1200}
+              height={700}
+              sizes="100vw"
+              quality={80}
+              className="h-full w-full object-cover"
             />
           </div>
 

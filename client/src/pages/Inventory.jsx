@@ -20,6 +20,8 @@ import {
 import { useShopData } from '../context/DataContext';
 import { getStockStatus, stockStatusLabel, formatPeso, DEFAULT_REORDER_LEVEL } from '../utils/stock';
 import ProductFormModal from '../components/inventory/ProductFormModal';
+import Img from '../components/ui/Img';
+import { adminFetch } from '../utils/api';
 import SalesView from '../components/inventory/SalesView';
 import ActivityView from '../components/inventory/ActivityView';
 import CustomersView from '../components/inventory/CustomersView';
@@ -27,8 +29,9 @@ import PromosView from '../components/inventory/PromosView';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
-// Admin check — only this email gets Inventory access
-const isAdmin = (user) => user?.email === 'admin@homeline.ph';
+// Admin access is enforced by the server (see AdminGate and /api/admin/session).
+// The page itself no longer re-checks localStorage: a client-side guard added
+// nothing, since the API rejected nothing either.
 
 const statusStyles = {
   in: 'bg-green-50 text-green-700',
@@ -43,12 +46,8 @@ const statusDot = {
 };
 
 const Inventory = () => {
-  const currentUser = JSON.parse(localStorage.getItem('homelineCurrentUser') || 'null');
-  if (!isAdmin(currentUser)) {
-    // Defense in depth — redirect non-admins immediately
-    if (typeof window !== 'undefined') window.location.href = '/';
-    return null;
-  }
+  // isAdmin check moved to AdminGate + server-side token. This component renders
+  // only after the admin token has been issued.
 
   const { products, refresh } = useShopData();
   const [tab, setTab] = useState('products');
@@ -102,9 +101,8 @@ const Inventory = () => {
     const stock = Number(editValueFor(product));
     setBusyId(product.id);
     try {
-      const res = await fetch(`${apiBase}/inventory/${product.id}`, {
+      const res = await adminFetch(`/inventory/${product.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock }),
       });
       if (!res.ok) throw new Error('Save failed');
@@ -125,9 +123,8 @@ const Inventory = () => {
   const restock = async (product) => {
     setBusyId(product.id);
     try {
-      const res = await fetch(`${apiBase}/inventory/restock`, {
+      const res = await adminFetch('/inventory/restock', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: product.id, quantity: 10, reason: 'Restock +10' }),
       });
       if (!res.ok) throw new Error('Restock failed');
@@ -320,9 +317,12 @@ const Inventory = () => {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <img
+                            <Img
                               src={product.image}
                               alt={product.name}
+                              width={96}
+                              height={96}
+                              sizes="48px"
                               className="h-12 w-12 rounded-xl object-cover"
                             />
                             <div>

@@ -1,23 +1,43 @@
+import { useState } from 'react'
 import { images } from '../data/images'
+import Img from '../components/ui/Img'
 
 export default function About() {
   const apiBase = import.meta.env.VITE_API_URL || '/api'
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState(null)
+  const [sending, setSending] = useState(false)
 
   async function onSubmit(event) {
     event.preventDefault()
-    const form = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
     const payload = Object.fromEntries(form.entries())
+
+    setSending(true)
+    setSent(false)
+    setError(null)
+
     try {
-      await fetch(`${apiBase}/contact`, {
+      const response = await fetch(`${apiBase}/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+      // Previously this reported success unconditionally, including when the
+      // server rejected the submission. Now it only does so on a real 201.
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        setError(body.error || 'Could not send your message.')
+        return
+      }
+      formElement.reset()
+      setSent(true)
     } catch {
-      /* portfolio fallback */
+      setError('Could not reach the server — please try again.')
+    } finally {
+      setSending(false)
     }
-    event.currentTarget.reset()
-    event.currentTarget.dataset.sent = 'true'
   }
 
   return (
@@ -35,9 +55,12 @@ export default function About() {
             for repair rather than replacement.
           </p>
         </div>
-        <img
+        <Img
           src={images.about}
           alt="Garden greenery representing Homeline’s materials ethic"
+          width={1400}
+          height={900}
+          sizes="(min-width: 1024px) 50vw, 100vw"
           className="h-[420px] w-full rounded-[2rem] object-cover"
         />
       </div>
@@ -78,10 +101,17 @@ export default function About() {
         </label>
         <button
           type="submit"
-          className="mt-6 rounded-full bg-forest px-6 py-3 text-sm text-cream"
+          disabled={sending}
+          className="mt-6 rounded-full bg-forest px-6 py-3 text-sm text-cream disabled:opacity-60"
         >
-          Send
+          {sending ? 'Sending…' : 'Send'}
         </button>
+        {sent && <p className="mt-4 text-sm text-forest">Thanks — your message is on its way.</p>}
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-red-600">
+            {error}
+          </p>
+        )}
       </form>
     </div>
   )

@@ -7,6 +7,7 @@ const apiBase = import.meta.env.VITE_API_URL || '/api'
 export default function CommunityCTA() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
+  const [statusType, setStatusType] = useState('success')
 
   async function onSubmit(event) {
     event.preventDefault()
@@ -16,12 +17,27 @@ export default function CommunityCTA() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      if (!response.ok) throw new Error('Request failed')
+      const body = await response.json().catch(() => ({}))
+
+      // The server validates the address and rejects duplicates, so surface what
+      // it actually said instead of claiming success on every response.
+      if (response.status === 409) {
+        setStatusType('error')
+        setStatus(body.error || 'That email is already subscribed.')
+        return
+      }
+      if (!response.ok) {
+        setStatusType('error')
+        setStatus(body.error || 'Could not subscribe — check the address and try again.')
+        return
+      }
+
+      setStatusType('success')
       setStatus('Welcome — we’ll send quiet seasonal notes.')
       setEmail('')
     } catch {
-      setStatus('Saved locally. We’ll keep you in the loop.')
-      setEmail('')
+      setStatusType('error')
+      setStatus('Could not reach the server — please try again.')
     }
   }
 
@@ -53,7 +69,14 @@ export default function CommunityCTA() {
               Subscribe
             </Button>
           </form>
-          {status ? <p className="mt-3 text-sm text-olive">{status}</p> : null}
+          {status ? (
+            <p
+              role="status"
+              className={`mt-3 text-sm ${statusType === 'error' ? 'text-red-300' : 'text-olive'}`}
+            >
+              {status}
+            </p>
+          ) : null}
         </div>
         <img
           src={images.cta}

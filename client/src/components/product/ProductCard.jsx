@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, ShoppingCart } from 'lucide-react';
+import { Leaf, ShoppingCart, Star } from 'lucide-react';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Toast from '../ui/Toast';
+import Img from '../ui/Img';
 import { useCart } from '../../hooks/useCart';
+import { useShopData } from '../../context/DataContext';
 import { getStockStatus } from '../../utils/stock';
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
   const [showToast, setShowToast] = useState(false);
   const stockStatus = getStockStatus(product.stock, product.reorderLevel);
+  const { reviewSummary = {} } = useShopData() || {};
+  const rating = reviewSummary[product.id];
 
   const getBadgeVariant = (badge) => {
     if (!badge) return 'default';
@@ -30,11 +34,14 @@ const ProductCard = ({ product }) => {
 
   return (
     <>
-      <div className="group min-w-0 overflow-hidden rounded-[28px] border border-[#d9d1c4] bg-[#f8f3ee] shadow-[0_14px_30px_rgba(19,33,29,0.06)] transition-all duration-300 hover:-translate-y-2 hover:border-[#7a9b7e] hover:shadow-[0_20px_40px_rgba(19,33,29,0.14)]">
+      <div style={{ contentVisibility: 'auto', containIntrinsicSize: '0 420px' }} className="group min-w-0 overflow-hidden rounded-[28px] border border-[#d9d1c4] bg-[#f8f3ee] shadow-[0_14px_30px_rgba(19,33,29,0.06)] transition-all duration-300 hover:-translate-y-2 hover:border-[#7a9b7e] hover:shadow-[0_20px_40px_rgba(19,33,29,0.14)]">
         <Link to={`/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gradient-to-br from-[#efe4d7] via-[#f5efe8] to-[#e4e5dd]" aria-label={`Customize ${product.name}`}>
-          <img
+          <Img
             src={product.image}
             alt={product.name}
+            width={800}
+            height={800}
+            sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 50vw"
             className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${stockStatus === 'out' ? 'grayscale opacity-60' : ''}`}
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f3d35]/25 via-transparent to-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -88,6 +95,21 @@ const ProductCard = ({ product }) => {
               {product.name}
             </Link>
             <p className="mt-1 text-sm text-[#5f6561]">{product.category}</p>
+            {rating?.count > 0 ? (
+              <Link
+                to={`/product/${product.slug}#reviews`}
+                className="mt-1 inline-flex items-center gap-1 text-sm"
+                aria-label={`Rated ${rating.average} out of 5 from ${rating.count} reviews`}
+              >
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-charcoal">{rating.average}</span>
+                <span className="text-[#5f6561]">({rating.count})</span>
+              </Link>
+            ) : (
+              <Link to={`/product/${product.slug}#reviews`} className="mt-1 inline-block text-xs text-[#5f6561] underline-offset-2 hover:underline">
+                No reviews yet — be the first
+              </Link>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">

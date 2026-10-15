@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import Img from '../components/ui/Img';
 
 const highlights = [
   {
@@ -64,14 +65,20 @@ const AboutPage = () => {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <img
+          <Img
             src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80"
             alt="Warm kitchen interior"
+            width={900}
+            height={600}
+            sizes="(min-width: 640px) 50vw, 100vw"
             className="h-52 w-full rounded-3xl object-cover shadow-lg sm:h-64"
           />
-          <img
+          <Img
             src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80"
             alt="Modern dining setup"
+            width={900}
+            height={600}
+            sizes="(min-width: 640px) 50vw, 100vw"
             className="h-52 w-full rounded-3xl object-cover shadow-lg sm:h-64"
           />
         </div>

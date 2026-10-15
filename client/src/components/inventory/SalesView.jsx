@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ShoppingBag, TrendingUp, CalendarDays, PackageOpen, ChevronDown, Loader, Download, Printer } from 'lucide-react';
 import { formatPeso, formatDateTime } from '../../utils/stock';
 import { SalesTrendChart, TopProductsChart } from './SalesCharts';
+import { adminFetch } from '../../utils/api';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -14,7 +15,7 @@ const SalesView = () => {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${apiBase}/orders`)
+    adminFetch('/orders')
       .then((res) => {
         if (!res.ok) throw new Error('Could not load sales');
         return res.json();

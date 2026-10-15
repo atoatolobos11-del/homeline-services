@@ -1,4 +1,5 @@
 import Button from '../ui/Button';
+import Img from '../ui/Img';
 import { ArrowRight } from 'lucide-react';
 
 const NewArrival = ({ products }) => {
@@ -10,10 +11,14 @@ const NewArrival = ({ products }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left - Image */}
           <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-secondary/20 to-accent/20 aspect-[4/3] order-2 lg:order-1 shadow-xl">
-            <img 
-              src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1000&h=750&fit=crop&q=80" 
+            <Img
+              src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1000&h=750&fit=crop&q=80"
               alt="New arrival eco-friendly kitchen products"
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              width={1000}
+              height={750}
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              quality={80}
+              className="h-full w-full object-cover hover:scale-105 transition-transform duration-500"
             />
           </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Users, ShoppingBag, Search, Loader, Coins } from 'lucide-react';
 import { formatPeso, formatDateTime } from '../../utils/stock';
+import { adminFetch } from '../../utils/api';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -11,7 +12,7 @@ const CustomersView = () => {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${apiBase}/orders`)
+    adminFetch('/orders')
       .then((res) => {
         if (!res.ok) throw new Error('Could not load orders');
         return res.json();

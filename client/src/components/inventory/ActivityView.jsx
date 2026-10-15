@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { History, Loader, ShoppingBag, PackagePlus, SlidersHorizontal } from 'lucide-react';
 import { formatDateTime } from '../../utils/stock';
+import { adminFetch } from '../../utils/api';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -16,7 +17,7 @@ const ActivityView = () => {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${apiBase}/inventory/movements`)
+    adminFetch('/inventory/movements')
       .then((res) => {
         if (!res.ok) throw new Error('Could not load activity');
         return res.json();

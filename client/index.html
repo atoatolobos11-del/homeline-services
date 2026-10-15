@@ -8,6 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+    <!-- Every catalog and section image is hotlinked from these two CDNs. Without
+         preconnecting, the browser pays DNS + TCP + TLS to each one before the
+         first pixel, which is most of the delay before images appear. -->
+    <link rel="preconnect" href="https://images.pexels.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+    <link rel="dns-prefetch" href="https://images.pexels.com">
+    <link rel="dns-prefetch" href="https://images.unsplash.com">
   </head>
   <body>
     <div id="root"></div>

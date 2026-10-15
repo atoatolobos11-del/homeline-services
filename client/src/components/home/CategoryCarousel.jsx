@@ -1,15 +1,17 @@
+import { useNavigate } from 'react-router-dom';
 import { useShopData } from '../../context/DataContext';
+import Img from '../ui/Img';
 import { ArrowRight } from 'lucide-react';
 
 const CategoryCarousel = () => {
+  const navigate = useNavigate();
   const { categories } = useShopData();
 
-  const handleCategoryClick = (e, slug) => {
+  const handleCategoryClick = (e, categoryName) => {
     e.preventDefault();
-    const element = document.querySelector('#products');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    // Actually filter the shop instead of just scrolling: the old handler
+    // ignored the category, so every tile showed the same unfiltered grid.
+    navigate(`/shop?category=${encodeURIComponent(categoryName)}`);
   };
 
   return (
@@ -26,14 +28,17 @@ const CategoryCarousel = () => {
           {categories.map((category) => (
             <button
               key={category.id}
-              onClick={(e) => handleCategoryClick(e, category.slug)}
+              onClick={(e) => handleCategoryClick(e, category.name)}
               className="group block text-left w-full"
             >
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-beige to-cream mb-3 group-hover:shadow-lg transition-all duration-300">
-                <img 
-                  src={category.image} 
+                <Img
+                  src={category.image}
                   alt={category.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  width={600}
+                  height={600}
+                  sizes="(min-width: 768px) 20vw, 50vw"
+                  className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
                 
                 {/* Hover Overlay */}

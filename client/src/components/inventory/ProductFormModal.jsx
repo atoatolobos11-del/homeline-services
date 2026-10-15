@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { X, Save, Loader, Image as ImageIcon } from 'lucide-react';
 import { useShopData } from '../../context/DataContext';
-
-const apiBase = import.meta.env.VITE_API_URL || '/api';
+import { adminFetch } from '../../utils/api';
 
 // Curated, verified sample photos so a product never ships with a broken image.
 const SAMPLE_PHOTOS = [
@@ -69,9 +68,8 @@ const ProductFormModal = ({ product, onClose, onSaved }) => {
       };
       if (!isEdit) payload.stock = Number(form.stock || 0);
 
-      const res = await fetch(`${apiBase}/products${isEdit ? `/${product.id}` : ''}`, {
+      const res = await adminFetch(`/products${isEdit ? `/${product.id}` : ''}`, {
         method: isEdit ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {

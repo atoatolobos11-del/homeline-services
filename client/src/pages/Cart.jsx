@@ -1,6 +1,7 @@
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Button from '../components/ui/Button'
+import Img from '../components/ui/Img'
 import { useCart } from '../hooks/useCart'
 import { formatPeso } from '../utils/stock'
 
@@ -42,9 +43,12 @@ export default function Cart() {
             return (
               <div key={item.id} className="rounded-[24px] border border-beige bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex gap-4">
-                  <img
+                  <Img
                     src={item.image}
                     alt={item.name}
+                    width={200}
+                    height={200}
+                    sizes="96px"
                     className="h-24 w-24 shrink-0 rounded-2xl border border-beige bg-cream object-cover"
                   />
                   <div className="min-w-0 flex-1">

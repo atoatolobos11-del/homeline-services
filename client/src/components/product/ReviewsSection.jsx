@@ -98,7 +98,7 @@ const ReviewsSection = ({ productId }) => {
     : '0';
 
   return (
-    <section className="mt-14">
+    <section id="reviews" className="mt-14 scroll-mt-28">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-charcoal">Customer reviews</h2>

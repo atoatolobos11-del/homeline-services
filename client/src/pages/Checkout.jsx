@@ -4,6 +4,7 @@ import { useCart } from '../hooks/useCart';
 import { useShopData } from '../context/DataContext';
 import { ArrowLeft, CreditCard, Lock, CheckCircle, XCircle, Loader } from 'lucide-react';
 import Button from '../components/ui/Button';
+import Img from '../components/ui/Img';
 import Toast from '../components/ui/Toast';
 import { cancelOrder } from '../utils/orders';
 import { formatPeso } from '../utils/stock';
@@ -203,11 +204,11 @@ const Checkout = () => {
       }
 
       const result = await res.json();
-      setOrderNumber(result.order_number || null);
+      setOrderNumber(result.orderNumber || null);
       setToastType('success');
       setToastMessage(
-        result.order_number
-          ? `Order ${result.order_number} placed successfully!`
+        result.orderNumber
+          ? `Order ${result.orderNumber} placed successfully!`
           : 'Order placed successfully!'
       );
       setOrderComplete(true);
@@ -832,10 +833,13 @@ const Checkout = () => {
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex gap-3 rounded-xl border border-beige bg-cream p-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-beige flex-shrink-0">
-                      <img 
-                        src={item.image} 
+                      <Img
+                        src={item.image}
                         alt={item.name}
-                        className="w-full h-full object-cover"
+                        width={128}
+                        height={128}
+                        sizes="64px"
+                        className="h-full w-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">

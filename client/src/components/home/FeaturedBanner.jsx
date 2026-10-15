@@ -1,4 +1,5 @@
 import Button from '../ui/Button';
+import Img from '../ui/Img';
 import { ArrowRight } from 'lucide-react';
 
 const FeaturedBanner = () => {
@@ -6,10 +7,14 @@ const FeaturedBanner = () => {
     <section className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-secondary to-accent min-h-[400px] lg:min-h-[500px]">
-          <img 
-            src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1400&h=600&fit=crop&q=80" 
+          <Img
+            src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1400&h=600&fit=crop&q=80"
             alt="Modern sustainable kitchen lifestyle"
-            className="absolute inset-0 w-full h-full object-cover"
+            width={1400}
+            height={600}
+            sizes="100vw"
+            quality={80}
+            className="absolute inset-0 h-full w-full object-cover"
           />
 
           {/* Content Card */}

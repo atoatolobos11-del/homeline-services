@@ -1,4 +1,5 @@
 import Button from '../ui/Button';
+import Img from '../ui/Img';
 import { ArrowRight } from 'lucide-react';
 
 const BestSellers = ({ products }) => {
@@ -40,10 +41,14 @@ const BestSellers = ({ products }) => {
 
           {/* Right - Image */}
           <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-beige to-cream aspect-[4/3] shadow-xl">
-            <img 
-              src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1000&h=750&fit=crop&q=80" 
+            <Img
+              src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1000&h=750&fit=crop&q=80"
               alt="Best selling cookware products"
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              width={1000}
+              height={750}
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              quality={80}
+              className="h-full w-full object-cover hover:scale-105 transition-transform duration-500"
             />
           </div>
         </div>

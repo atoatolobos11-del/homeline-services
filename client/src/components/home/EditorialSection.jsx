@@ -1,4 +1,5 @@
 import Button from '../ui/Button';
+import Img from '../ui/Img';
 import { ArrowRight } from 'lucide-react';
 
 const EditorialSection = () => {
@@ -19,10 +20,14 @@ const EditorialSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
           {/* Large Image */}
           <div className="md:col-span-2 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20 aspect-[16/9]">
-            <img 
-              src="https://images.unsplash.com/photo-1556911220-bff31c812dba?w=1200&h=675&fit=crop&q=80" 
+            <Img
+              src="https://images.unsplash.com/photo-1556911220-bff31c812dba?w=1200&h=675&fit=crop&q=80"
               alt="Sustainable production and materials"
-              className="w-full h-full object-cover"
+              width={1200}
+              height={675}
+              sizes="100vw"
+              quality={80}
+              className="h-full w-full object-cover"
             />
           </div>
 

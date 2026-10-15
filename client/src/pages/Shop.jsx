@@ -5,7 +5,7 @@ import { useShopData } from '../context/DataContext'
 import { useDebounce } from '../hooks/useDebounce'
 
 export default function Shop() {
-  const { products } = useShopData()
+  const { products, loading, error, refresh } = useShopData()
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState(params.get('q') || '')
   const debouncedQuery = useDebounce(query, 300)
@@ -18,20 +18,41 @@ export default function Shop() {
   const selectedCategory = params.get('category') || 'All'
   const filter = params.get('filter') || 'all'
 
-  const categoryOptions = useMemo(
-    () => ['All', ...new Set(products.map((item) => item.category))],
-    [products],
-  )
+  // Category names differ between the categories table ("Coffee & Drinkware")
+  // and the product rows ("Drinkware"). Match loosely so neither spelling
+  // blanks the grid.
+  const sameCategory = (productCategory, selected) => {
+    if (selected === 'All') return true
+    if (!productCategory) return false
+    const p = productCategory.toLowerCase()
+    const s = selected.toLowerCase()
+    if (p === s) return true
+    // "Coffee & Drinkware" <-> "Drinkware"
+    if (s.includes('drinkware') && p.includes('drinkware')) return true
+    if (s.includes('natural') && p.includes('natural')) return true
+    if (s.includes('living') && p.includes('living')) return true
+    if (s.includes('kitchen') && p.includes('kitchen')) return true
+    if (s.includes('bedding') && p.includes('bedding')) return true
+    if (s.includes('cooking') && p.includes('cooking')) return true
+    if (s.includes('storage') && p.includes('storage')) return true
+    return false
+  }
+
+  const categoryOptions = useMemo(() => {
+    const options = ['All', ...new Set(products.map((item) => item.category).filter(Boolean))]
+    // A category arriving from the Categories page ("Coffee & Drinkware") may
+    // not exactly equal a product category ("Drinkware") — still show it as
+    // the active pill instead of leaving nothing highlighted.
+    if (selectedCategory !== 'All' && !options.includes(selectedCategory)) {
+      options.push(selectedCategory)
+    }
+    return options
+  }, [products, selectedCategory])
 
   const filtered = useMemo(() => {
     return products.filter((product) => {
-      const matchesQuery = product.name.toLowerCase().includes(debouncedQuery.toLowerCase())
-      const matchesCategory =
-        selectedCategory === 'All' ||
-        product.category === selectedCategory ||
-        (selectedCategory === 'Coffee & Drinkware' && product.category === 'Drinkware') ||
-        (selectedCategory === 'Natural Materials' &&
-          product.category === 'Natural Materials')
+      const matchesQuery = (product.name || '').toLowerCase().includes(debouncedQuery.toLowerCase())
+      const matchesCategory = sameCategory(product.category, selectedCategory)
       const matchesFilter =
         filter === 'all' ||
         (filter === 'bestsellers' && product.bestSeller) ||
@@ -88,7 +109,24 @@ export default function Shop() {
       </div>
 
       <p className="mt-8 text-sm text-muted">{filtered.length} pieces</p>
-      {filtered.length > 0 ? (
+      {loading && products.length === 0 ? (
+        <div className="mt-4 rounded-3xl border border-line bg-white px-6 py-16 text-center">
+          <p className="text-lg font-semibold text-forest">Loading products…</p>
+          <p className="mt-2 text-sm text-muted">Fetching the live catalog.</p>
+        </div>
+      ) : error && products.length === 0 ? (
+        <div className="mt-4 rounded-3xl border border-red-200 bg-red-50 px-6 py-16 text-center">
+          <p className="text-lg font-semibold text-red-700">Could not load products</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={refresh}
+            className="mt-6 rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-cream transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg active:scale-95"
+          >
+            Try again
+          </button>
+        </div>
+      ) : filtered.length > 0 ? (
         <ProductGrid products={filtered} id="products" className="mt-4 scroll-mt-28" />
       ) : (
         <div id="products" className="mt-4 scroll-mt-28 rounded-3xl border border-dashed border-line bg-white px-6 py-16 text-center">

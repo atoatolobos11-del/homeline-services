@@ -7,6 +7,17 @@ import CartSidebar from './CartSidebar';
 import { useShopData } from '../../context/DataContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { formatPeso } from '../../utils/stock';
+import { ADMIN_EMAIL, hasAdminToken } from '../../utils/api';
+import {
+  AUTH_EVENT,
+  checkCredentials,
+  signOutUser,
+  normalizeEmail,
+  registerUser,
+  requestPasswordReset,
+  factoryResetLocalData,
+  getCurrentUser,
+} from '../../utils/auth';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -14,17 +25,47 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('register');
+  const [authMode, setAuthMode] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
+  const [modalError, setModalError] = useState(null);
+  const [modalNotice, setModalNotice] = useState(null);
+  const [modalBusy, setModalBusy] = useState(false);
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '' });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  // Forgot password sends a Supabase recovery email — the link returns to
+  // /login?recovery=1, where the new password is set.
+  const [resetEmail, setResetEmail] = useState('');
   const { cartCount } = useCart();
   const { products = [] } = useShopData();
-  const currentUser = JSON.parse(localStorage.getItem('homelineCurrentUser') || 'null');
+  // Reactive auth state: the old direct localStorage read never re-rendered
+  // on login/logout, so the header showed the wrong account until refresh.
+  const [currentUser, setCurrentUserState] = useState(() => getCurrentUser());
 
-  // Admin check — only this email gets Inventory access
-  const isAdmin = (user) => user?.email === 'admin@homeline.ph';
-  const currentUserIsAdmin = isAdmin(currentUser);
+  useEffect(() => {
+    const sync = () => setCurrentUserState(getCurrentUser());
+    window.addEventListener('storage', sync);
+    window.addEventListener(AUTH_EVENT, sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener(AUTH_EVENT, sync);
+    };
+  }, []);
+
+  const openAuth = (mode) => {
+    setAuthMode(mode);
+    setModalError(null);
+    setModalNotice(null);
+    setLoginOpen(true);
+  };
+
+  // Shows the Inventory link only to the admin: either the signed-in admin
+  // account or a browser holding a valid admin session token. Shoppers never
+  // see it. This is navigation convenience only — the server rejects admin
+  // API calls without the token, so hiding this link protects nothing on its
+  // own (see AdminGate + /api/admin/session).
+  const currentUserIsAdmin =
+    hasAdminToken() ||
+    String(currentUser?.email || '').toLowerCase() === String(ADMIN_EMAIL || '').toLowerCase();
 
   // --- Debounced product search -------------------------------------------------
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,59 +143,89 @@ const Header = () => {
     setLoginForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!registerForm.name || !registerForm.email || !registerForm.password) {
+    setModalError(null);
+    setModalNotice(null);
+    const name = registerForm.name.trim();
+    const email = normalizeEmail(registerForm.email);
+    if (!name || !email || !registerForm.password) {
+      setModalError('Fill in your name, email, and password.');
       return;
     }
-
-    const users = JSON.parse(localStorage.getItem('homelineUsers') || '[]');
-    const existingUser = users.some((user) => user.email === registerForm.email);
-
-    if (existingUser) {
-      alert('An account with this email already exists. Please log in instead.');
-      setAuthMode('login');
+    if (registerForm.password.length < 6) {
+      setModalError('Password must be at least 6 characters.');
       return;
     }
-
-    users.push({
-      name: registerForm.name,
-      email: registerForm.email,
-      password: registerForm.password
-    });
-
-    localStorage.setItem('homelineUsers', JSON.stringify(users));
-    setAuthMode('login');
-    setLoginForm({ email: registerForm.email, password: '' });
+    setModalBusy(true);
+    const result = await registerUser({ name, email, password: registerForm.password });
+    setModalBusy(false);
+    if (result.error) {
+      // "Already exists" arrives as an error — bounce to login instead.
+      if (/already exists/i.test(result.error)) {
+        setAuthMode('login');
+        setLoginForm({ email, password: '' });
+      }
+      setModalError(result.error);
+      return;
+    }
     setRegisterForm({ name: '', email: '', password: '' });
+    if (result.needsConfirmation) {
+      // Supabase "Confirm email" is ON: no session until the inbox link is clicked.
+      setAuthMode('login');
+      setLoginForm({ email, password: '' });
+      setModalNotice('Account created — click the confirmation link in your inbox, then log in.');
+      return;
+    }
+    // Session started immediately; the AUTH_EVENT listener updates the header.
+    setLoginOpen(false);
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    setModalError(null);
+    setModalNotice(null);
     if (!loginForm.email || !loginForm.password) {
+      setModalError('Enter your email and password.');
       return;
     }
-
-    const users = JSON.parse(localStorage.getItem('homelineUsers') || '[]');
-    const matchedUser = users.find(
-      (user) => user.email === loginForm.email && user.password === loginForm.password
-    );
-
-    if (!matchedUser) {
-      alert('No account found. Please register first.');
-      setAuthMode('register');
+    setModalBusy(true);
+    const result = await checkCredentials(loginForm.email, loginForm.password);
+    setModalBusy(false);
+    if (result.error) {
+      setModalError(result.error);
       return;
     }
-
-    localStorage.setItem('homelineCurrentUser', JSON.stringify({
-      name: matchedUser.name,
-      email: matchedUser.email
-    }));
-
     setLoginOpen(false);
     setLoginForm({ email: '', password: '' });
     setRegisterForm({ name: '', email: '', password: '' });
-    navigate('/shop');
+    // Stay where the shopper already is — the old code always dumped them on
+    // /shop, even mid-checkout.
+  };
+
+  const handleLogout = async () => {
+    await signOutUser();
+    navigate('/');
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setModalError(null);
+    setModalNotice(null);
+    const email = normalizeEmail(resetEmail);
+    if (!email) {
+      setModalError('Enter the email you registered with.');
+      return;
+    }
+    setModalBusy(true);
+    const result = await requestPasswordReset(email);
+    setModalBusy(false);
+    if (result.error) {
+      setModalError(result.error);
+      return;
+    }
+    // Supabase never reveals whether the address exists — same message either way.
+    setModalNotice('If that email has an account, a reset link is on its way. It opens here so you can set a new password.');
   };
 
   return (
@@ -314,10 +385,7 @@ const Header = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    localStorage.removeItem('homelineCurrentUser');
-                    window.location.href = '/';
-                  }}
+                  onClick={handleLogout}
                   className="hidden md:inline-flex items-center rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
                 >
                   Log out
@@ -327,7 +395,7 @@ const Header = () => {
               <button 
                 className="hidden md:block p-2 hover:bg-beige rounded-full transition-colors"
                 aria-label="Account"
-                onClick={() => setLoginOpen(true)}
+                onClick={() => openAuth('login')}
               >
                 <User className="w-5 h-5 text-charcoal" />
               </button>
@@ -384,6 +452,34 @@ const Header = () => {
                   </a>
                 );
               })}
+              {/* Account actions: the desktop icon buttons are hidden on mobile,
+                  so without these there is no way to sign in from a phone. */}
+              {currentUser ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); navigate('/profile'); }}
+                    className="border-l-4 border-transparent py-2 pl-3 text-left text-charcoal hover:text-primary"
+                  >
+                    Profile ({currentUser.name.split(' ')[0]})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                    className="border-l-4 border-transparent py-2 pl-3 text-left text-charcoal hover:text-primary"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setMobileMenuOpen(false); openAuth('login'); }}
+                  className="border-l-4 border-transparent py-2 pl-3 text-left font-semibold text-primary"
+                >
+                  Log in / Register
+                </button>
+              )}
             </nav>
           </div>
         )}
@@ -401,7 +497,7 @@ const Header = () => {
           >
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-charcoal">
-                {authMode === 'register' ? 'Create account' : 'Log in'}
+                {authMode === 'register' ? 'Create account' : authMode === 'forgot' ? 'Reset password' : 'Log in'}
               </h2>
               <button
                 type="button"
@@ -413,7 +509,49 @@ const Header = () => {
               </button>
             </div>
 
-            {authMode === 'register' ? (
+            {modalError && (
+              <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {modalError}
+              </p>
+            )}
+            {modalNotice && (
+              <p role="status" className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                {modalNotice}
+              </p>
+            )}
+
+            {authMode === 'forgot' ? (
+              <form onSubmit={handleForgotSubmit} className="space-y-4">
+                <p className="text-sm text-muted">
+                  Enter the email you registered with. If it has an account, a reset link is on its way — it opens here so you can set a new password.
+                </p>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-charcoal">
+                    Email address
+                  </label>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full rounded-xl border border-beige px-4 py-3 focus:border-primary focus:outline-none"
+                    required
+                  />
+                </div>
+                <Button type="submit" size="lg" className="w-full" disabled={modalBusy}>
+                  {modalBusy ? 'Sending…' : 'Send reset link'}
+                </Button>
+                <p className="text-center text-sm text-muted">
+                  <button
+                    type="button"
+                    className="font-semibold text-primary hover:text-primary-dark"
+                    onClick={() => { setAuthMode('login'); setModalError(null); }}
+                  >
+                    Back to log in
+                  </button>
+                </p>
+              </form>
+            ) : authMode === 'register' ? (
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-charcoal">
@@ -470,8 +608,8 @@ const Header = () => {
                   </div>
                 </div>
 
-                <Button type="submit" size="lg" className="w-full">
-                  Register
+                <Button type="submit" size="lg" className="w-full" disabled={modalBusy}>
+                  {modalBusy ? 'Creating…' : 'Register'}
                 </Button>
 
                 <p className="text-center text-sm text-muted">
@@ -527,18 +665,18 @@ const Header = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-muted">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="h-4 w-4 rounded border-beige" />
-                    Remember me
-                  </label>
-                  <button type="button" className="text-primary hover:text-primary-dark">
+                <div className="flex items-center justify-end text-sm text-muted">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('forgot'); setModalError(null); setModalNotice(null); }}
+                    className="font-medium text-primary hover:text-primary-dark hover:underline"
+                  >
                     Forgot password?
                   </button>
                 </div>
 
-                <Button type="submit" size="lg" className="w-full">
-                  Log In
+                <Button type="submit" size="lg" className="w-full" disabled={modalBusy}>
+                  {modalBusy ? 'Logging in…' : 'Log In'}
                 </Button>
 
                 <p className="text-center text-sm text-muted">
@@ -549,6 +687,15 @@ const Header = () => {
                     onClick={() => setAuthMode('register')}
                   >
                     Create account
+                  </button>
+                </p>
+                <p className="text-center text-xs text-muted">
+                  <button
+                    type="button"
+                    onClick={async () => { await factoryResetLocalData(); window.location.reload(); }}
+                    className="font-medium text-red-600 hover:underline"
+                  >
+                    Start fresh — remove all accounts on this device
                   </button>
                 </p>
               </form>

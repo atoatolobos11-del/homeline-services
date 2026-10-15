@@ -23,7 +23,11 @@ const ContactPage = () => {
           message: form.get('message'),
         }),
       });
-      if (!res.ok) throw new Error('Could not send your message. Please try again.');
+      if (!res.ok) {
+        // Surface the server's own message — it now rejects malformed emails.
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Could not send your message. Please try again.');
+      }
       setSent(true);
       e.currentTarget.reset();
     } catch (err) {

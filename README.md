@@ -38,6 +38,7 @@ Homeline is a full-stack e-commerce website built as a portfolio project, featur
 ### Backend
 - **Node.js** - Runtime environment
 - **Express** - Web framework
+- **Supabase** - Postgres database with RPC functions for atomic stock movement
 - **CORS** - Cross-origin resource sharing
 
 ### DevOps
@@ -157,24 +158,50 @@ Server will run on http://localhost:5000
 ### Implemented
 - ✅ Responsive navigation with mobile menu
 - ✅ Hero section with sustainability badge
-- ✅ Product grid with filtering capabilities
+- ✅ Product grid with filtering, search, and category browsing
 - ✅ Shopping cart with localStorage persistence
-- ✅ Add to cart functionality
-- ✅ Product categories
-- ✅ Testimonials section
-- ✅ Newsletter subscription UI
-- ✅ Footer with sitemap
-- ✅ RESTful API endpoints
+- ✅ Product detail pages with colour variants
+- ✅ Checkout with promo codes, shipping, gift wrap, and tax
+- ✅ Order tracking and self-service cancellation (restores stock)
+- ✅ Product reviews
+- ✅ Newsletter subscription and contact form
+- ✅ Help chatbot, including live order lookup
+- ✅ Admin Inventory dashboard — sales, activity, customers, promos, charts, CSV/print
+- ✅ Server-enforced admin authorization on every sensitive route
 - ✅ Docker containerization
 
 ### API Endpoints
 
 ```
-GET    /api/products           # Get all products
-GET    /api/products/:id       # Get product by ID
-GET    /api/categories         # Get all categories
-POST   /api/newsletter         # Subscribe to newsletter
-POST   /api/contact            # Submit contact form
+# Public
+GET    /api/health                     # Liveness + database status
+GET    /api                            # Service banner and route list
+GET    /api/products                   # Storefront products (no cost prices)
+GET    /api/products/:id               # Single product
+GET    /api/categories                 # All categories
+GET    /api/reviews                    # Reviews, optional ?productId=
+POST   /api/reviews                    # Add a review
+GET    /api/promos                     # Active, unexpired codes only
+GET    /api/orders/:orderNumber        # Track one order by number
+POST   /api/orders                     # Place an order
+POST   /api/orders/cancel              # Cancel an order, restores stock
+POST   /api/orders/by-email            # A shopper's own history
+POST   /api/newsletter                 # Subscribe
+POST   /api/contact                    # Contact form
+
+# Admin — require a Bearer token or X-Admin-Secret
+POST   /api/admin/session              # Exchange admin password for a token
+GET    /api/admin/session              # Verify the current token
+DELETE /api/admin/session              # Sign out
+GET    /api/orders                     # All orders + sales summary
+GET    /api/inventory                  # Products incl. costPrice
+GET    /api/inventory/movements        # Stock audit log
+PATCH  /api/inventory/:id              # Set exact stock
+POST   /api/inventory/restock          # Add stock
+POST   /api/products                   # Create a product
+PATCH  /api/products/:id               # Edit a product
+POST   /api/promos                     # Create a promo code
+PATCH  /api/promos/:id                 # Enable/disable a promo code
 ```
 
 ## 🎨 Component Architecture
@@ -245,14 +272,28 @@ Or convert to Vercel Serverless Functions for a unified deployment.
 
 ## 🧪 Testing
 
-To test the application:
+See [SMOKE_TEST.md](SMOKE_TEST.md) for the latest end-to-end report.
 
-1. Start both frontend and backend servers
-2. Navigate to http://localhost:3000
-3. Test cart functionality:
-   - Add products to cart
-   - Check cart count updates
-   - Verify localStorage persistence (refresh page)
+```bash
+# 1. backend
+cd server && npm install && npm start    # :5000
+
+# 2. frontend
+cd client && npm install && npm run dev # :3000
+
+# 3. confirm
+curl http://localhost:5000/api/health   # {"ok":true,"database":"supabase"}
+curl http://localhost:3000/api/health   # same, through the Vite proxy
+```
+
+Manual checks worth repeating:
+
+- Add products to the cart, change quantity and colour, reload and confirm
+  `localStorage` restored it.
+- Place an order at checkout, then watch stock fall in the admin dashboard.
+- Track the order by number in **lowercase** — it should still resolve.
+- Open `/inventory` in a signed-out browser and confirm you get the admin
+  sign-in form, then that the API refuses the dashboard's data without a token.
 
 ## 📝 Environment Variables
 
@@ -260,12 +301,67 @@ To test the application:
 ```
 VITE_API_URL=http://localhost:5000/api
 ```
+Optional. Without it the app uses the Vite dev proxy (`/api` → `:5000`).
 
 ### Server (.env)
 ```
 PORT=5000
 NODE_ENV=development
+
+SUPABASE_URL=your-project-url
+SUPABASE_ANON_KEY=your-anon-key
+
+ADMIN_EMAIL=admin2026@gmail.com
+ADMIN_API_KEY=
+ADMIN_PASSWORD=
+ADMIN_SESSION_SECRET=
 ```
+
+`SUPABASE_URL` and `SUPABASE_ANON_KEY` are required — without them every data
+route returns `503`. The API has **no** local-JSON fallback.
+
+### Admin access
+
+The Inventory dashboard, `GET /api/orders`, and all product/promo writes are admin
+only, and this is enforced **on the server**. The React route guard is only a
+convenience — hiding the link changes nothing, because the API rejects the request
+regardless.
+
+Two ways to authenticate:
+
+- **Dashboard (browser, recommended):** log in as `admin2026@gmail.com`, open
+  `/inventory`, and press **Enter inventory dashboard**. Your login session is
+  revalidated server-side and only that account is accepted — no extra
+  password, nothing to forget.
+- **Admin password (fallback):** sign in at `/inventory` with `ADMIN_EMAIL` +
+  `ADMIN_PASSWORD`. The server returns a short-lived (8h) HMAC-signed token stored
+  as `homelineAdminToken` and sent as `Authorization: Bearer <token>`. Sign-in is
+  rate limited to 8 attempts per IP per 15 minutes. Requires `ADMIN_PASSWORD`
+  and `ADMIN_SESSION_SECRET` in the server environment.
+- **Scripts and CI:** send `X-Admin-Secret: <ADMIN_API_KEY>`.
+
+A Supabase access token is also accepted on the Bearer path and revalidated with
+`auth.getUser()`.
+
+Generate the secrets once:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"   # ADMIN_API_KEY
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"   # ADMIN_SESSION_SECRET
+```
+
+Leaving `ADMIN_API_KEY` blank disables secret-header access entirely, and leaving
+`ADMIN_PASSWORD`/`ADMIN_SESSION_SECRET` blank disables dashboard sign-in. Both
+default to denying, so a fresh checkout is never wide open.
+
+### What the storefront does *not* authenticate
+
+Storefront accounts are still `localStorage`-only (`Login.jsx` stores plaintext
+passwords). `POST /api/orders/by-email` is therefore scoped by a posted email
+rather than a verified session — better than the previous behaviour of serving
+every customer to every caller, but **not** real authentication. This project is a
+portfolio demo and must not handle real customer data until storefront auth moves
+onto a real identity provider.
 
 ## 🤝 Contributing
 
@@ -292,18 +388,21 @@ Portfolio project by OJT
 
 ## 🔮 Future Enhancements
 
-Potential features to add:
-- [ ] Product detail pages
-- [ ] Search functionality
-- [ ] Category filtering
-- [ ] User authentication
-- [ ] Wishlist feature
+Realistically the biggest remaining gap is identity:
+
+- [ ] Replace localStorage auth with Supabase Auth (or similar) for shoppers —
+      the current accounts are client-side only, and `POST /api/orders/by-email`
+      trusts a posted email
+- [ ] Persist passwords properly (they are stored in plaintext today)
+- [ ] Tighten Supabase RLS so the `anon` key cannot read `orders` or write to
+      `newsletter_subscribers` / `contact_messages` / `promo_codes`
 - [ ] Payment integration
-- [ ] Order history
-- [ ] Product reviews
-- [ ] Admin dashboard
 - [ ] Email notifications
+- [ ] Shared rate limiting (Redis or edge) for multi-instance deploys
+- [ ] Non-sequential order numbers to stop leaking daily volume
+- [ ] Wishlist feature
 - [ ] Dark mode toggle
+- [ ] Committed E2E suite (Playwright) — the smoke harness is currently ad hoc
 
 ## 📞 Support
 

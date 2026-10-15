@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Toast from '../components/ui/Toast';
+import Img from '../components/ui/Img';
 import { useCart } from '../hooks/useCart';
 import { useShopData } from '../context/DataContext';
 import { getStockStatus } from '../utils/stock';
@@ -19,10 +20,26 @@ const ProductDetail = () => {
   const stockStatus = product ? getStockStatus(product.stock, product.reorderLevel) : 'out';
   const soldOut = stockStatus === 'out';
   const maxQuantity = product ? Math.max(1, product.stock) : 1;
-  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || 'Natural');
+  const [selectedColor, setSelectedColor] = useState('Natural');
   const [selectedSize, setSelectedSize] = useState('Medium');
   const [quantity, setQuantity] = useState(1);
   const [showToast, setShowToast] = useState(false);
+
+  // products load async — sync the default color once the product arrives.
+  // The old useState(product?.colors?.[0]) ran before the fetch finished and
+  // stayed stuck on 'Natural' forever.
+  useEffect(() => {
+    if (product?.colors?.length) setSelectedColor(product.colors[0]);
+  }, [product?.id]);
+
+  // Deep link from product cards (#reviews) — jump straight to the reviews.
+  useEffect(() => {
+    if (product && window.location.hash === '#reviews') {
+      requestAnimationFrame(() => {
+        document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [product?.id]);
 
   if (loading) {
     return (
@@ -74,7 +91,16 @@ const ProductDetail = () => {
 
       <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
         <div className="overflow-hidden rounded-[2rem] border border-beige bg-cream shadow-lg">
-          <img src={product.image} alt={product.name} className="aspect-square h-full w-full object-cover" />
+          {/* Above the fold on the product page — fetch it right away. */}
+          <Img
+            src={product.image}
+            alt={product.name}
+            priority="high"
+            width={1200}
+            height={1200}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            className="aspect-square h-full w-full object-cover"
+          />
         </div>
 
         <div className="rounded-[2rem] bg-white p-6 shadow-lg sm:p-8">

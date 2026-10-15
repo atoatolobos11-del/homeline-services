@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
+import { AUTH_EVENT, getCurrentUser, isAuthReady } from './utils/auth'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Shop from './pages/Shop'
@@ -18,6 +19,7 @@ import ReturnsPage from './pages/ReturnsPage'
 import FaqPage from './pages/FaqPage'
 import Profile from './pages/Profile'
 import Inventory from './pages/Inventory'
+import AdminGate from './components/inventory/AdminGate'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import OrderStatus from './pages/OrderStatus'
@@ -34,10 +36,36 @@ function ScrollToTop() {
   return null;
 }
 
-// Admin check helper — only this email gets Inventory access
-const isAdmin = (user) => user?.email === 'admin@homeline.ph';
+// Admin gate. The former check was `currentUser.email === 'admin@homeline.ph'`
+// read from localStorage, which anyone could set from devtools. AdminGate now
+// asks for a password and keeps the signed token the server issues; the server
+// rejects admin API calls without it. The localStorage user still decides who
+// gets past the outer route gate, but that is convenience, not security.
 
 function AppLayout({ currentUser }) {
+  const location = useLocation();
+  const [authLoaded, setAuthLoaded] = useState(isAuthReady());
+  // Remember where a logged-out visitor was headed so login can send them
+  // back instead of dropping them on a fixed page.
+  const loginRedirect = (
+    <Navigate to="/login" replace state={{ from: location.pathname }} />
+  );
+
+  useEffect(() => {
+    const syncReady = () => setAuthLoaded(isAuthReady());
+    window.addEventListener(AUTH_EVENT, syncReady);
+    return () => window.removeEventListener(AUTH_EVENT, syncReady);
+  }, []);
+
+  // The persisted session loads asynchronously — hold the splash screen until
+  // then so protected routes don't flash-redirect to /login on refresh.
+  if (!authLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <p className="text-muted">Loading Homeline…</p>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -48,10 +76,14 @@ function AppLayout({ currentUser }) {
             element={<Home />}
           />
           <Route path="/login" element={<Login />} />
-          <Route path="/catalog" element={currentUser ? <Catalog /> : <Navigate to="/login" replace />} />
-          <Route path="/shop" element={currentUser ? <Shop /> : <Navigate to="/login" replace />} />
-          <Route path="/bestsellers" element={currentUser ? <BestsellersPage /> : <Navigate to="/login" replace />} />
-          <Route path="/categories" element={currentUser ? <CategoriesPage /> : <Navigate to="/login" replace />} />
+          {/* Storefront browsing is public — anyone can view products without an
+              account. Login is only required for personal data (profile),
+              checkout, and the admin dashboard. Gating /shop etc. behind login
+              made the catalog look empty for logged-out visitors. */}
+          <Route path="/catalog" element={<Catalog />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/bestsellers" element={<BestsellersPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/sustainability" element={<SustainabilityPage />} />
           <Route path="/journal" element={<JournalPage />} />
@@ -60,13 +92,16 @@ function AppLayout({ currentUser }) {
           <Route path="/shipping" element={<ShippingPage />} />
           <Route path="/returns" element={<ReturnsPage />} />
           <Route path="/faq" element={<FaqPage />} />
-          <Route path="/profile" element={currentUser ? <Profile /> : <Navigate to="/login" replace />} />
-          <Route path="/inventory" element={currentUser && isAdmin(currentUser) ? <Inventory /> : <Navigate to="/" replace />} />
-          <Route path="/cart" element={currentUser ? <Cart /> : <Navigate to="/login" replace />} />
-          <Route path="/checkout" element={currentUser ? <Checkout /> : <Navigate to="/login" replace />} />
-          <Route path="/order" element={currentUser ? <OrderStatus /> : <Navigate to="/login" replace />} />
-          <Route path="/order/:orderNumber" element={currentUser ? <OrderStatus /> : <Navigate to="/login" replace />} />
-          <Route path="/product/:slug" element={currentUser ? <ProductDetail /> : <Navigate to="/login" replace />} />
+          <Route path="/product/:slug" element={<ProductDetail />} />
+          <Route path="/profile" element={currentUser ? <Profile /> : loginRedirect} />
+          <Route
+            path="/inventory"
+            element={currentUser ? <AdminGate><Inventory /></AdminGate> : loginRedirect}
+          />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order" element={<OrderStatus />} />
+          <Route path="/order/:orderNumber" element={<OrderStatus />} />
         </Routes>
       </main>
       <ScrollToTop />
@@ -77,21 +112,19 @@ function AppLayout({ currentUser }) {
 }
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(() =>
-    JSON.parse(localStorage.getItem('homelineCurrentUser') || 'null')
-  );
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
 
   useEffect(() => {
     const syncCurrentUser = () => {
-      setCurrentUser(JSON.parse(localStorage.getItem('homelineCurrentUser') || 'null'));
+      setCurrentUser(getCurrentUser());
     };
 
     window.addEventListener('storage', syncCurrentUser);
-    window.addEventListener('homeline-auth-changed', syncCurrentUser);
+    window.addEventListener(AUTH_EVENT, syncCurrentUser);
 
     return () => {
       window.removeEventListener('storage', syncCurrentUser);
-      window.removeEventListener('homeline-auth-changed', syncCurrentUser);
+      window.removeEventListener(AUTH_EVENT, syncCurrentUser);
     };
   }, []);
 

@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import Button from '../ui/Button';
+import Img from '../ui/Img';
 
 const Hero = () => {
   return (
@@ -41,16 +42,30 @@ const Hero = () => {
 
           {/* Right Image */}
           <div className="relative">
-            <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-secondary/20">
-              <img 
-                src="https://images.unsplash.com/photo-1556911220-bff31c812dba?w=1200&h=900&fit=crop&q=80" 
+            <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-gradient-to-br from-secondary/40 to-primary/30 min-h-[240px]">
+              {/* The hero is the LCP element — fetch it eagerly at high priority
+                  and let the browser pick the size, instead of one fixed 1200px
+                  download for every screen. If the remote Unsplash file fails
+                  (offline / blocked CDN), hide the broken <img> so the gradient
+                  placeholder + headline still paint instead of a broken icon. */}
+              <Img
+                src="https://images.unsplash.com/photo-1556911220-bff31c812dba?w=1200&h=900&fit=crop&q=80"
                 alt="Modern eco-friendly kitchen"
-                className="w-full h-full object-cover"
+                priority="high"
+                width={1200}
+                height={900}
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                quality={80}
+                className="h-full w-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             </div>
 
-            {/* Floating Info Card */}
-            <div className="absolute -bottom-6 -left-6 bg-white text-charcoal rounded-2xl p-6 shadow-2xl max-w-xs">
+            {/* Floating Info Card — kept inside the section on small screens.
+                The old -bottom-6 -left-6 offsets pushed it 0.5rem past the
+                section padding on mobile, where the section's overflow-hidden
+                clipped it. */}
+            <div className="absolute bottom-4 left-4 sm:-bottom-6 sm:-left-6 bg-white text-charcoal rounded-2xl p-6 shadow-2xl max-w-xs">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                   <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">

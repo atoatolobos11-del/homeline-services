@@ -71,7 +71,8 @@ recording the sale. See [§9](#9-authentication-and-its-limits) and
 │  └─ React Router            │  (dev)  │  └─ rpc() → Postgres fns    │
 │                             │         │                              │
 │  localStorage:              │         │  @supabase/supabase-js      │
-│  ├─ homeline-cart           │         │  (anon publishable key)     │
+│  ├─ homeline-cart           │         │  (anon publishable key)     │opencode
+
 │  ├─ homelineUsers           │         │                              │
 │  └─ homelineCurrentUser     │         └──────────────┬───────────────┘
 └─────────────────────────────┘                        │

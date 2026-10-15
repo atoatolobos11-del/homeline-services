@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Button from '../ui/Button';
+import Img from '../ui/Img';
 import { Mail } from 'lucide-react';
 import Toast from '../ui/Toast';
 
@@ -58,10 +59,14 @@ const SustainabilityCTA = () => {
 
           {/* Right Image */}
           <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-secondary/30 to-accent/30 aspect-[4/3]">
-            <img 
-              src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1000&h=750&fit=crop&q=80" 
+            <Img
+              src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1000&h=750&fit=crop&q=80"
               alt="Sustainable kitchen essentials"
-              className="w-full h-full object-cover"
+              width={1000}
+              height={750}
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              quality={80}
+              className="h-full w-full object-cover"
             />
           </div>
         </div>

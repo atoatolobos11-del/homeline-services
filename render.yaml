@@ -34,3 +34,11 @@ services:
         sync: false              # https://uvlthouojygwthqdnlpx.supabase.co
       - key: SUPABASE_ANON_KEY
         sync: false              # publishable / anon key — safe to expose, RLS does the work
+      - key: ADMIN_EMAIL
+        sync: false              # admin2026@gmail.com — must match the admin Supabase account
+      - key: ADMIN_PASSWORD
+        sync: false              # dashboard sign-in password (Inventory → Admin sign-in)
+      - key: ADMIN_SESSION_SECRET
+        sync: false              # long random string; generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      - key: ADMIN_API_KEY
+        sync: false              # optional, server-to-server only — leave blank to disable

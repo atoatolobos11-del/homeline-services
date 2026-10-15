@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Percent, Tag, Loader, Plus, Power, X } from 'lucide-react';
 import { formatPeso } from '../../utils/stock';
+import { adminFetch } from '../../utils/api';
 
 const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -23,7 +24,7 @@ const PromosView = () => {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`${apiBase}/promos`);
+      const res = await adminFetch('/promos');
       if (!res.ok) throw new Error('Could not load promo codes');
       setPromos(await res.json());
     } catch (err) {
@@ -38,9 +39,8 @@ const PromosView = () => {
   const toggleActive = async (promo) => {
     setBusyId(promo.id);
     try {
-      const res = await fetch(`${apiBase}/promos/${encodeURIComponent(promo.id)}`, {
+      const res = await adminFetch(`/promos/${encodeURIComponent(promo.id)}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !promo.active }),
       });
       if (!res.ok) throw new Error('Update failed');
@@ -58,9 +58,8 @@ const PromosView = () => {
     setSaving(true);
     setFormError(null);
     try {
-      const res = await fetch(`${apiBase}/promos`, {
+      const res = await adminFetch('/promos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: form.code,
           discountType: form.discountType,
