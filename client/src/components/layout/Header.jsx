@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, User, Menu, X } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import CartSidebar from './CartSidebar';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { useShopData } from '../../context/DataContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { formatPeso } from '../../utils/stock';
@@ -18,6 +19,7 @@ const Header = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { cartCount } = useCart();
   const { products = [] } = useShopData();
   // Reactive auth state: the old direct localStorage read never re-rendered
@@ -109,7 +111,8 @@ const Header = () => {
     navigate(href);
   };
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
     await signOutUser();
     navigate('/');
   };
@@ -271,7 +274,7 @@ const Header = () => {
 
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutConfirm(true)}
                   className="hidden md:inline-flex items-center rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
                 >
                   Log out
@@ -349,7 +352,7 @@ const Header = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                    onClick={() => { setMobileMenuOpen(false); setShowLogoutConfirm(true); }}
                     className="border-l-4 border-transparent py-2 pl-3 text-left text-charcoal hover:text-primary"
                   >
                     Log out
@@ -371,6 +374,12 @@ const Header = () => {
 
       {/* Cart Sidebar */}
       <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+      />
     </header>
   );
 };

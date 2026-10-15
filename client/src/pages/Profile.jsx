@@ -20,6 +20,7 @@ import {
 import { useShopData } from '../context/DataContext';
 import { useCart } from '../hooks/useCart';
 import { signOutUser, getCurrentUser, updatePassword, AUTH_EVENT } from '../utils/auth';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { supabase } from '../utils/supabaseClient';
 import { formatPeso, formatDateTime } from '../utils/stock';
 
@@ -58,6 +59,7 @@ const Profile = () => {
   const [pwConfirm, setPwConfirm] = useState('');
   const [savingPw, setSavingPw] = useState(false);
   const [pwMsg, setPwMsg] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Keep the hero in sync when auth changes (e.g. after a display-name save).
   useEffect(() => {
@@ -103,7 +105,8 @@ const Profile = () => {
     return [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }, [orders]);
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
     await signOutUser();
     navigate('/');
   };
@@ -288,7 +291,7 @@ const Profile = () => {
               </button>
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="inline-flex items-center gap-2 rounded-full border border-white/40 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-primary active:scale-95"
               >
                 <LogOut className="h-4 w-4" /> Log out
@@ -423,7 +426,7 @@ const Profile = () => {
               </button>
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="inline-flex items-center gap-2 rounded-full border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 active:scale-95"
               >
                 <LogOut className="h-4 w-4" /> Sign out everywhere
@@ -525,6 +528,12 @@ const Profile = () => {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 };
