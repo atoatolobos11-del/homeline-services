@@ -24,7 +24,15 @@ const supabaseUrl = process.env.SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_ANON_KEY
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
 
-app.use(cors())
+// CORS: leave CORS_ORIGINS blank for open access (local dev / single-service
+// production where the API serves the storefront from the same origin).
+// Set it to a comma-separated allow-list when the storefront lives elsewhere
+// (e.g. Vercel frontend + Render API): CORS_ORIGINS=http://localhost:3000,https://your-shop.vercel.app
+const corsOrigins = String(process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+app.use(corsOrigins.length ? cors({ origin: corsOrigins }) : cors())
 app.use(express.json())
 
 // Map snake_case DB rows to the camelCase shape the frontend expects.

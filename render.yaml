@@ -34,6 +34,13 @@ services:
         sync: false              # https://uvlthouojygwthqdnlpx.supabase.co
       - key: SUPABASE_ANON_KEY
         sync: false              # publishable / anon key — safe to expose, RLS does the work
+      # --- Storefront build-time vars (Vite bakes these into the JS bundle) ---
+      - key: VITE_SUPABASE_URL
+        sync: false              # same Project URL as SUPABASE_URL — without it, login shows "not configured"
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false              # same anon key as SUPABASE_ANON_KEY
+      - key: VITE_API_URL
+        value: /api              # single-service deploy: API + storefront share one origin
       - key: ADMIN_EMAIL
         sync: false              # admin2026@gmail.com — must match the admin Supabase account
       - key: ADMIN_PASSWORD
